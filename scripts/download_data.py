@@ -25,7 +25,10 @@ def main():
     # Potremmo voler scaricare solo cubi di comuni, come "thepaupercube"
     cubes_to_download = [
         "thepaupercube",
-        "pauper_cube_with_downshifts",
+        "gilpauper",
+        "mengupaupercube",
+        "difinitivepauper"
+
         # "vintage_cube_2023" # Questo contiene rare, potremmo non volerlo ora
     ]
     
