@@ -4,7 +4,7 @@ from typing import List
 import time
 
 from ..environment.draft import Card
-from ..features.cardEncoders import CardEncoder
+from ..features.cardencoders import CardEncoder
 
 class DraftLogger:
     """

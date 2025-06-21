@@ -4,16 +4,15 @@
 #      Script per l'Esecuzione del Ciclo di Training
 #
 # Uso:
-#   ./run_full_cycle.sh            - Esegue l'intero ciclo da zero (cleanup -> generate -> train -> evaluate)
-#   ./run_full_cycle.sh generate   - Esegue da 'generate' in poi (cleanup -> generate -> train -> evaluate)
-#   ./run_full_cycle.sh train      - Esegue da 'train' in poi (train -> evaluate)
-#   ./run_full_cycle.sh evaluate   - Esegue solo la fase di 'evaluate'
+#   ./fullcycle.sh            - Esegue l'intero ciclo da zero
+#   ./fullcycle.sh generate   - Salta la pulizia e il download, rigenera i dati
+#   ./fullcycle.sh train      - Salta tutto e parte dal training
+#   ./fullcycle.sh evaluate   - Esegue solo la fase di valutazione
 # ===================================================================
 
 set -e
 
 # --- Definizione delle Funzioni per ogni Fase ---
-# Suddividere in funzioni rende lo script più leggibile e modulare
 
 setup_env() {
     echo "▶️  FASE 0: Attivazione dell'ambiente virtuale..."
@@ -31,6 +30,14 @@ do_cleanup() {
     python scripts/cleanup.py
     echo "✅ Pulizia completata."
 }
+
+# --- FUNZIONE MANCANTE AGGIUNTA QUI ---
+do_download() {
+    echo "▶️  FASE 1.5: Download dei dati grezzi (se necessario)..."
+    python scripts/downloaddata.py
+    echo "✅ Download dati completato."
+}
+# --- FINE AGGIUNTA ---
 
 do_generate_logs() {
     echo "▶️  FASE 2: Generazione del dataset di training..."
@@ -50,22 +57,27 @@ do_evaluate_model() {
     echo "✅ Valutazione completata."
 }
 
-# --- Logica Principale ---
+# --- Logica Principale Aggiornata ---
+START_PHASE=${1:-all}
 
-# Controlla il primo argomento passato allo script ($1)
-START_PHASE=${1:-all} # Se non viene passato nessun argomento, il default è 'all'
-
-# Attiva sempre l'ambiente
 setup_env
 echo
 
-# Esegue le fasi in base al punto di partenza scelto
-if [[ "$START_PHASE" == "all" || "$START_PHASE" == "cleanup" || "$START_PHASE" == "generate" ]]; then
+if [[ "$START_PHASE" == "all" || "$START_PHASE" == "cleanup" ]]; then
+    # Il ciclo completo parte dalla pulizia e include il download
     do_cleanup
+    echo
+    do_download
     echo
     do_generate_logs
     echo
-    # Dopo aver generato i log, dobbiamo per forza fare il training e la valutazione
+    do_train_model
+    echo
+    do_evaluate_model
+elif [[ "$START_PHASE" == "generate" ]]; then
+    # Se voglio solo rigenerare i log, non serve pulire o riscaricare tutto
+    do_generate_logs
+    echo
     do_train_model
     echo
     do_evaluate_model
@@ -77,7 +89,7 @@ elif [[ "$START_PHASE" == "evaluate" ]]; then
     do_evaluate_model
 else
     echo "❌ Argomento non valido: '$START_PHASE'"
-    echo "Uso: ./run_full_cycle.sh [generate|train|evaluate]"
+    echo "Uso: ./fullcycle.sh [generate|train|evaluate|cleanup]"
     exit 1
 fi
 

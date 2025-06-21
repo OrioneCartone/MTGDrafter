@@ -3,20 +3,22 @@ import sys
 import torch
 from torch.utils.data import DataLoader
 
+# --- BLOCCO DI CODICE EFFETTIVO ---
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
+# --- FINE BLOCCO ---
 
 from src.data.loaders import DraftLogDataset, custom_collate_fn
-from src.models.policy_network import PolicyNetwork
+from src.models.policynetwork import PolicyNetwork
 from src.training.trainer import Trainer
 from src.utils.constants import FEATURE_SIZE
 
-# --- Configurazione del Training (Pauper Generalist) ---
+# --- Configurazione del Training ---
 LOGS_DIR = PROJECT_ROOT / "data" / "processed" / "pauper_generalist_logs"
 MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "pauper_generalist_v1"
 
 # Hyperparameters
-BATCH_SIZE = 128 # Possiamo aumentarlo un po' se abbiamo più dati
+BATCH_SIZE = 128
 LEARNING_RATE = 1e-4
 NUM_EPOCHS = 10
 
@@ -30,23 +32,16 @@ def main():
     print("Caricamento del dataset...")
     dataset = DraftLogDataset(logs_dir=LOGS_DIR)
     train_loader = DataLoader(
-        dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        collate_fn=custom_collate_fn,
-        num_workers=4,
-        pin_memory=True
+        dataset, batch_size=BATCH_SIZE, shuffle=True,
+        collate_fn=custom_collate_fn, num_workers=4, pin_memory=True
     )
     print(f"Dataset caricato con {len(dataset)} campioni.")
     
     model = PolicyNetwork(feature_size=FEATURE_SIZE)
     
     trainer = Trainer(
-        model=model,
-        train_loader=train_loader,
-        learning_rate=LEARNING_RATE,
-        device=device,
-        model_dir=MODEL_SAVE_DIR
+        model=model, train_loader=train_loader, learning_rate=LEARNING_RATE,
+        device=device, model_dir=MODEL_SAVE_DIR
     )
     
     trainer.train(num_epochs=NUM_EPOCHS)

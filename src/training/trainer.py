@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 from tqdm import tqdm
 
-from ..models.policy_network import PolicyNetwork
+from ..models.policynetwork import PolicyNetwork
 
 class Trainer:
     """

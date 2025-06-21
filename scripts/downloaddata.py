@@ -1,20 +1,29 @@
-# ... (import e PROJECT_ROOT) ...
+from pathlib import Path
+import sys
+
+# --- BLOCCO DI CODICE EFFETTIVO ---
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.append(str(PROJECT_ROOT))
+# --- FINE BLOCCO ---
+
 from src.data.collectors import download_scryfall_commons, download_cubecobra_list
-# ...
+
+# --- Configurazione ---
+DATA_DIR = PROJECT_ROOT / "data"
+SCRYFALL_OUTPUT_FILE = DATA_DIR / "external" / "scryfall_commons.json"
+CUBE_LISTS_DIR = DATA_DIR / "raw" / "cube_lists"
 
 def main():
-    """Script per scaricare i dati necessari per l'ambiente Pauper Cube."""
+    """Script per scaricare i dati necessari per l'ambiente Pauper."""
     print("--- Avvio download dati (Focus: Pauper) ---")
 
-    # 1. Scarica il database di TUTTE le carte comuni. È il nostro dizionario.
     download_scryfall_commons(output_path=SCRYFALL_OUTPUT_FILE)
 
-    # 2. Scarica le liste dei cubi di sole comuni che useremo come benchmark.
-    # Ci concentriamo su "thepaupercube" come principale.
     pauper_cubes_to_download = [
-        "thepaupercube",            # Il nostro cubo di riferimento primario
-        "downshifted",              # Un altro Pauper Cube popolare per varietà
-        # "pauper_cube_with_downshifts" # Un altro esempio se vuoi più dati
+        "thepaupercube",
+        "mengupaupercube",
+        "difinitivepauper",
+        "gilpauper"
     ]
     
     print("\n--- Download Liste Cubi Pauper ---")
@@ -24,4 +33,5 @@ def main():
 
     print("\n--- Download completato. ---")
 
-# ... (il resto dello script) ...
+if __name__ == "__main__":
+    main()
