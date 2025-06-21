@@ -3,35 +3,30 @@ import sys
 import torch
 from torch.utils.data import DataLoader
 
-# --- BLOCCO DI CODICE DA AGGIUNGERE ---
-# Aggiunge la root del progetto al path di Python per trovare i nostri moduli
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
-# --- FINE BLOCCO DA AGGIUNGERE ---
 
 from src.data.loaders import DraftLogDataset, custom_collate_fn
 from src.models.policy_network import PolicyNetwork
 from src.training.trainer import Trainer
-from src.utils.constants import FEATURE_SIZE # Ora questo import funzionerà
+from src.utils.constants import FEATURE_SIZE
 
-# --- Configurazione del Training ---
-LOGS_DIR = PROJECT_ROOT / "data" / "processed" / "draft_logs"
-MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "run_01"
+# --- Configurazione del Training (Pauper Generalist) ---
+LOGS_DIR = PROJECT_ROOT / "data" / "processed" / "pauper_generalist_logs"
+MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "pauper_generalist_v1"
 
 # Hyperparameters
-BATCH_SIZE = 64
+BATCH_SIZE = 128 # Possiamo aumentarlo un po' se abbiamo più dati
 LEARNING_RATE = 1e-4
 NUM_EPOCHS = 10
-# FEATURE_SIZE è ora importato da constants.py
 
 def main():
-    """Script principale per orchestrare l'addestramento del modello."""
-    print("--- Avvio Script di Addestramento ---")
+    """Addestra il modello Pauper Generalist."""
+    print("--- Avvio Script di Addestramento (Pauper Generalist) ---")
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Dispositivo di addestramento: {device}")
     
-    # 1. Preparare il DataLoader
     print("Caricamento del dataset...")
     dataset = DraftLogDataset(logs_dir=LOGS_DIR)
     train_loader = DataLoader(
@@ -42,12 +37,10 @@ def main():
         num_workers=4,
         pin_memory=True
     )
-    print("Dataset caricato.")
+    print(f"Dataset caricato con {len(dataset)} campioni.")
     
-    # 2. Inizializzare il Modello
     model = PolicyNetwork(feature_size=FEATURE_SIZE)
     
-    # 3. Inizializzare il Trainer
     trainer = Trainer(
         model=model,
         train_loader=train_loader,
@@ -56,7 +49,6 @@ def main():
         model_dir=MODEL_SAVE_DIR
     )
     
-    # 4. Avviare l'addestramento
     trainer.train(num_epochs=NUM_EPOCHS)
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import sys
-from tqdm import tqdm # Aggiungiamo una barra di progresso!
+from tqdm import tqdm
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
@@ -13,56 +13,66 @@ from src.training.logger import DraftLogger
 
 # --- Configurazione ---
 DATA_DIR = PROJECT_ROOT / "data"
-LOGS_DIR = DATA_DIR / "processed" / "draft_logs"
+LOGS_DIR = DATA_DIR / "processed" / "pauper_generalist_logs" # Cartella specifica
 CARD_DB_PATH = DATA_DIR / "external" / "scryfall_commons.json"
-CUBE_LIST_PATH = DATA_DIR / "raw" / "cube_lists" / "thepaupercube.json"
+CUBE_LISTS_DIR = DATA_DIR / "raw" / "cube_lists"
 
 NUM_PLAYERS = 8
-NUM_DRAFTS_TO_GENERATE = 50 # Generiamo un numero più sostanzioso
+DRAFTS_PER_CUBE = 25 # Aumentiamo un po' per un dataset più ricco
 
 def load_json_file(path: Path):
     if not path.exists():
-        print(f"ERRORE: Il file {path} non è stato trovato. Esegui prima 'scripts/download_data.py'.")
+        print(f"ERRORE: Il file {path} non è stato trovato.")
         sys.exit(1)
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def main():
-    """Script principale per generare log di draft sintetici."""
-    print("--- Preparazione Generazione Log ---")
+    """Genera log di draft sintetici da TUTTI i cubi Pauper disponibili."""
+    print("--- Preparazione Generazione Log (Pauper Generalist) ---")
     
-    # Carica i dati una sola volta
     card_database = load_json_file(CARD_DB_PATH)
-    cube_list_data = load_json_file(CUBE_LIST_PATH)
     card_db_by_name = {card['name']: card for card in card_database}
-    cube_card_names = cube_list_data['cards']
-    # Semplifichiamo la normalizzazione (già fatta in simulate_draft)
-    cube_full_details = [card_db_by_name[name] for name in cube_card_names if name in card_db_by_name]
-
-    # Inizializza il logger
+    
     logger = DraftLogger(output_dir=LOGS_DIR)
 
-    print(f"\n--- Avvio generazione di {NUM_DRAFTS_TO_GENERATE} draft logs ---")
-    
-    # Usiamo tqdm per una bella barra di progresso
-    for i in tqdm(range(NUM_DRAFTS_TO_GENERATE), desc="Generando Drafts"):
-        # Crea i bot per questo draft
-        bots = [ScoringBot(Player(player_id=j)) for j in range(NUM_PLAYERS)]
-        
-        # Crea una copia del cubo per ogni simulazione, così non si esaurisce
-        cube_copy = list(cube_full_details)
-        
-        # Inizializza il simulatore con il logger
-        simulator = DraftSimulator(
-            cube_list=cube_copy, 
-            bots=bots, 
-            draft_id=i,
-            logger=logger
-        )
-        # Esegui il draft (non ci interessa il risultato finale, solo il logging)
-        simulator.run_draft()
+    cube_files = list(CUBE_LISTS_DIR.glob("*.json"))
+    if not cube_files:
+        print(f"ERRORE: Nessun file di cubo trovato in {CUBE_LISTS_DIR}.")
+        sys.exit(1)
 
-    print(f"\n✅ Generazione log completata. {NUM_DRAFTS_TO_GENERATE * NUM_PLAYERS * 45} pick sono stati loggati.")
+    print(f"Trovati {len(cube_files)} cubi. Generando {DRAFTS_PER_CUBE} log per ciascuno.")
+    
+    draft_id_counter = 0
+    for cube_path in tqdm(cube_files, desc="Processando Cubi"):
+        print(f"\nCaricamento cubo: {cube_path.name}")
+        cube_list_data = load_json_file(cube_path)
+        
+        # Usiamo un set per una ricerca più veloce dei nomi
+        cube_card_names_set = set(cube_list_data['cards'])
+        cube_full_details = [card for name, card in card_db_by_name.items() if name in cube_card_names_set]
+        
+        if len(cube_full_details) < NUM_PLAYERS * 45:
+            print(f"ATTENZIONE: Il cubo {cube_path.name} ha solo {len(cube_full_details)} carte valide nel DB. Salto.")
+            continue
+            
+        for _ in tqdm(range(DRAFTS_PER_CUBE), desc=f"Drafting {cube_path.stem}", leave=False):
+            bots = [ScoringBot(Player(player_id=j)) for j in range(NUM_PLAYERS)]
+            cube_copy = list(cube_full_details)
+            
+            simulator = DraftSimulator(
+                cube_list=cube_copy, 
+                bots=bots, 
+                draft_id=draft_id_counter,
+                logger=logger
+            )
+            # Silenziamo l'output del simulatore per non inondare il terminale
+            # simulator.run_draft(verbose=False) # (Modifica futura da fare al simulatore)
+            simulator.run_draft()
+            draft_id_counter += 1
+
+    total_logs = len(list(LOGS_DIR.glob("*.json")))
+    print(f"\n✅ Generazione log completata. Creati {total_logs} file di log totali.")
     print(f"Controlla la cartella: {LOGS_DIR}")
 
 if __name__ == "__main__":
