@@ -1,0 +1,15 @@
+cube:
+  default_size: 450
+  pack_size: 15
+  picks_per_pack: 15
+  packs_per_player: 3
+  players_per_pod: 8
+
+data:
+  raw_data_path: "data/raw"
+  processed_data_path: "data/processed"
+  external_data_path: "data/external"
+
+api:
+  scryfall_base_url: "https://api.scryfall.com"
+  cubecobra_base_url: "https://cubecobra.com/cube/api"
