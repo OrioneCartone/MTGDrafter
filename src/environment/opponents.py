@@ -3,6 +3,8 @@ from typing import List, Dict
 
 from .draft import Card, DraftPack, Player
 from src.features.cardEncoders import CardEncoder # Import corretto con "src."
+from ..utils.constants import FEATURE_SIZE, MAX_PACK_SIZE, MAX_POOL_SIZE
+
 
 # --- 1. DEFINIRE PRIMA LA CLASSE BASE ---
 class BaseBot:
@@ -78,3 +80,58 @@ class ScoringBot(BaseBot):
         print(f"  -> Bot {self.player.player_id} ha scelto: {best_card.name} (Punteggio: {best_score})")
         
         return best_card
+
+# Aggiungi questi import all'inizio del file
+import torch
+from pathlib import Path
+from ..models.policy_network import PolicyNetwork
+
+# ... (il codice esistente di BaseBot, RandomBot, ScoringBot rimane qui) ...
+# ...
+# ...
+
+# --- IL NOSTRO BOT BASATO SU RETE NEURALE ---
+class AIBot(BaseBot):
+    # Modifica il costruttore per non avere più feature_size come argomento fisso
+    def __init__(self, player: Player, model_path: Path):
+        super().__init__(player)
+        self.encoder = CardEncoder()
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        print(f"Bot {self.player.player_id} (AI) sta caricando il modello da: {model_path}")
+        if not model_path.exists():
+            raise FileNotFoundError(f"File del modello non trovato: {model_path}")
+            
+        # Usa la costante importata
+        self.model = PolicyNetwork(feature_size=FEATURE_SIZE)
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.to(self.device)
+        self.model.eval()
+        print(f"Modello caricato con successo sul dispositivo '{self.device}'.")
+
+    def pick(self, pack: DraftPack, pack_number: int, pick_number: int) -> Card:
+        with torch.no_grad():
+            pack_vectors = [self.encoder.encode_card(c.details) for c in pack.cards]
+            pool_vectors = [self.encoder.encode_card(c.details) for c in self.player.pool]
+            
+            # --- CORREZIONE CHIAVE: USA LE COSTANTI ---
+            pack_tensor = torch.zeros(1, MAX_PACK_SIZE, FEATURE_SIZE)
+            pool_tensor = torch.zeros(1, MAX_POOL_SIZE, FEATURE_SIZE)
+            # --- FINE CORREZIONE ---
+            
+            if pack_vectors:
+                pack_tensor[0, :len(pack_vectors), :] = torch.tensor(pack_vectors, dtype=torch.float32)
+            if pool_vectors:
+                pool_tensor[0, :len(pool_vectors), :] = torch.tensor(pool_vectors, dtype=torch.float32)
+                
+            pack_tensor = pack_tensor.to(self.device)
+            pool_tensor = pool_tensor.to(self.device)
+
+            scores = self.model(pack_tensor, pool_tensor).squeeze(0)
+            valid_scores = scores[:len(pack.cards)]
+            best_card_index = torch.argmax(valid_scores).item()
+            chosen_card = pack.cards[best_card_index]
+
+            print(f"  -> Bot {self.player.player_id} (AI) ha scelto: {chosen_card.name} (Punteggio AI: {valid_scores[best_card_index]:.2f})")
+            
+            return chosen_card

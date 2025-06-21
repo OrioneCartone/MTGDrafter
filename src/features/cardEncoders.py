@@ -6,7 +6,7 @@ from typing import List, Dict
 class CardEncoder:
     def __init__(self):
         self.color_order = ['W', 'U', 'B', 'R', 'G']
-        self.type_order = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land', 'Planeswalker']
+        self.type_order = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land']
 
     # QUESTA FUNZIONE DOVREBBE RESTITUIRE UN VETTORE DI LUNGHEZZA 5
     def _encode_colors(self, card_details: Dict) -> List[int]:

@@ -3,15 +3,18 @@ import sys
 import torch
 from torch.utils.data import DataLoader
 
+# --- BLOCCO DI CODICE DA AGGIUNGERE ---
+# Aggiunge la root del progetto al path di Python per trovare i nostri moduli
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
+# --- FINE BLOCCO DA AGGIUNGERE ---
 
 from src.data.loaders import DraftLogDataset, custom_collate_fn
 from src.models.policy_network import PolicyNetwork
 from src.training.trainer import Trainer
+from src.utils.constants import FEATURE_SIZE # Ora questo import funzionerà
 
 # --- Configurazione del Training ---
-# Parametri che possiamo modificare per i nostri esperimenti
 LOGS_DIR = PROJECT_ROOT / "data" / "processed" / "draft_logs"
 MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "run_01"
 
@@ -19,13 +22,12 @@ MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "run_01"
 BATCH_SIZE = 64
 LEARNING_RATE = 1e-4
 NUM_EPOCHS = 10
-FEATURE_SIZE = 14 # Assicurati che corrisponda alla lunghezza reale del tuo vettore
+# FEATURE_SIZE è ora importato da constants.py
 
 def main():
     """Script principale per orchestrare l'addestramento del modello."""
     print("--- Avvio Script di Addestramento ---")
     
-    # Imposta il dispositivo (usa la GPU se disponibile, altrimenti la CPU)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Dispositivo di addestramento: {device}")
     
@@ -35,10 +37,10 @@ def main():
     train_loader = DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
-        shuffle=True, # Mischiare i dati è fondamentale per un buon training
+        shuffle=True,
         collate_fn=custom_collate_fn,
-        num_workers=4, # Usa più processi per caricare i dati (se possibile)
-        pin_memory=True # Ottimizzazione per GPU
+        num_workers=4,
+        pin_memory=True
     )
     print("Dataset caricato.")
     
