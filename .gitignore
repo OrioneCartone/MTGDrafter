@@ -89,3 +89,7 @@ logs/
 mlruns/
 wandb/
 
+# Dati, Modelli e Log (NON devono essere nel repository)
+data/
+models/
+logs/
