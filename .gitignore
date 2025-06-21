@@ -1,0 +1,13 @@
+``gitignore
+# Ambiente virtuale
+venv/
+
+# Dati scaricati e generati
+data/raw/
+data/processed/
+data/external/
+
+# Altri file generati (log, cache, ecc.)
+__pycache__/
+.ipynb_checkpoints
+*.log
