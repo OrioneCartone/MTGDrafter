@@ -15,7 +15,7 @@ echo "    Includendo tutto il contenuto della cartella corrente..."
 
 # La sintassi -x 'cartella/*' è più robusta
 # Escludiamo tutte le cartelle che non sono codice sorgente.
-zip -r "../${OUTPUT_ZIP_FILE}" . \
+zip -r "zippone.zip" . \
     -x 'venv/*' \
     -x 'data/*' \
     -x 'models/*' \
