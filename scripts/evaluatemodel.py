@@ -18,6 +18,7 @@ from src.environment.draft import Player
 from src.utils.constants import FEATURE_SIZE
 from src.evaluation.evaluator import evaluate_deck
 
+
 # --- Configurazione della Valutazione ---
 DATA_DIR = PROJECT_ROOT / "data"
 MODEL_PATH = PROJECT_ROOT / "models" / "experiments" / "transformer_v1" / "model_final.pth"

@@ -3,11 +3,18 @@ from typing import List, Dict
 import torch
 from pathlib import Path
 
-# Import corretti
+# Importiamo i moduli interni
 from src.environment.draft import Card, DraftPack, Player
 from src.features.cardencoders import CardEncoder
-from src.models.transformerdrafter import TransformerDrafter
-from src.utils.constants import *
+from src.models.policynetwork import PolicyNetwork
+from src.models.transformerdrafter import TransformerDrafter 
+from src.evaluation.evaluator import score_card_intrinsic_quality
+
+# --- MODIFICA CHIAVE: Importa TUTTE le costanti necessarie ---
+from src.utils.constants import (
+    FEATURE_SIZE, MAX_PACK_SIZE, MAX_POOL_SIZE, 
+    KEYWORD_LIST, ABILITY_PATTERNS, OLD_FEATURE_SIZE
+)
 
 # 1. CLASSE BASE
 class BaseBot:
@@ -22,6 +29,8 @@ class RandomBot(BaseBot):
         chosen_card = random.choice(pack.cards)
         print(f"  -> Bot {self.player.player_id} (Random) sceglie: {chosen_card.name}")
         return chosen_card
+
+from src.evaluation.evaluator import score_card_intrinsic_quality
 
 class ScoringBot(BaseBot):
     """
@@ -106,4 +115,49 @@ class ScoringBot(BaseBot):
         if best_card is None: best_card = random.choice(pack.cards)
         
         # print(f"  -> Bot {self.player.player_id} (Scoring) sceglie: {best_card.name} (Punteggio: {best_score:.2f})")
-        return 
+        return best_card
+
+
+class AIBot(BaseBot):
+    """
+    Un bot che usa il modello TransformerDrafter addestrato per prendere decisioni.
+    """
+    # Rimuoviamo 'model_type' dal costruttore
+    def __init__(self, player: Player, model_path: Path):
+        super().__init__(player)
+        self.encoder = CardEncoder()
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        print(f"Bot {player.player_id} (AI) sta caricando il modello Transformer da: {model_path}")
+        if not model_path.exists():
+            raise FileNotFoundError(f"File modello non trovato: {model_path}")
+            
+        # Carichiamo direttamente il TransformerDrafter, non c'è più ambiguità
+        self.model = TransformerDrafter()
+        self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.model.to(self.device)
+        self.model.eval()
+        print(f"Modello Transformer per Giocatore {player.player_id} caricato con successo.")
+
+    def pick(self, pack: DraftPack, pack_number: int, pick_number: int) -> Card:
+        with torch.no_grad():
+            pack_vectors = [self.encoder.encode_card(c.details) for c in pack.cards]
+            pool_vectors = [self.encoder.encode_card(c.details) for c in self.player.pool]
+            
+            pack_tensor = torch.zeros(1, MAX_PACK_SIZE, FEATURE_SIZE, device=self.device)
+            pool_tensor = torch.zeros(1, MAX_POOL_SIZE, FEATURE_SIZE, device=self.device)
+            
+            if pack_vectors: pack_tensor[0, :len(pack_vectors), :] = torch.tensor(pack_vectors, dtype=torch.float32)
+            if pool_vectors: pool_tensor[0, :len(pool_vectors), :] = torch.tensor(pool_vectors, dtype=torch.float32)
+
+            absolute_pick_number = (pack_number - 1) * 15 + pick_number
+            pick_tensor = torch.tensor([absolute_pick_number], dtype=torch.long, device=self.device)
+
+            scores = self.model(pack_tensor, pool_tensor, pick_tensor).squeeze(0)
+            
+            valid_scores = scores[:len(pack.cards)]
+            best_card_index = torch.argmax(valid_scores).item()
+            chosen_card = pack.cards[best_card_index]
+
+            print(f"  -> Bot {self.player.player_id} (AI-T) sceglie: {chosen_card.name} (Punteggio: {valid_scores[best_card_index]:.2f})")
+            return chosen_card
