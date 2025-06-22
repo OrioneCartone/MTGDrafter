@@ -23,7 +23,8 @@ def main():
         "thepaupercube",
         "mengupaupercube",
         "difinitivepauper",
-        "gilpauper"
+        "gilpauper",
+        "4cd0h"
     ]
     
     print("\n--- Download Liste Cubi Pauper ---")

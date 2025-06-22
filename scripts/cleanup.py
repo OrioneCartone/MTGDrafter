@@ -7,7 +7,7 @@ sys.path.append(str(PROJECT_ROOT))
 
 # Definiamo le cartelle specifiche per il nostro esperimento "Pauper Generalist"
 LOGS_DIR = PROJECT_ROOT / "data" / "processed" / "pauper_generalist_logs"
-MODELS_DIR = PROJECT_ROOT / "models" / "experiments" / "pauper_generalist_v1"
+MODELS_DIR = PROJECT_ROOT / "models" / "experiments" / "transformer_v1"
 
 def clean_directory(dir_path: Path):
     """

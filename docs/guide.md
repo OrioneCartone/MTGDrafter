@@ -1,63 +1,82 @@
-Guida al Progetto: Dalle Idee ai Dati di Training
+Assolutamente. È il momento perfetto per consolidare tutto ciò che abbiamo costruito con una guida dettagliata. Questo ci darà un quadro chiaro dei progressi e preparerà il terreno per il prossimo grande passo.
 
-Questa guida documenta il viaggio fatto finora per costruire le fondamenta del nostro MTG Cube Draft AI. Abbiamo trasformato un'idea astratta in un dataset concreto, pronto per l'addestramento di un modello di machine learning.
-Fase 1: Costruzione dell'Ambiente e Raccolta Dati
+Ecco una guida completa che puoi inserire nel tuo `README.md` o in un file separato come `docs/project_summary.md`.
 
-L'obiettivo iniziale era creare un "universo" in cui il nostro futuro bot potesse esistere e interagire.
+---
 
-    Setup dell'Infrastruttura:
-        È stata definita una struttura di cartelle chiara e scalabile, separando codice (src), dati (data), script (scripts) e configurazioni (config).
-        È stato creato un ambiente virtuale (venv) per isolare le dipendenze del progetto, garantendo la riproducibilità.
-        È stato redatto un file requirements.txt per gestire tutte le librerie necessarie (torch, pandas, etc.).
+## Guida al Progetto MTG Cube Draft AI: Dalla Teoria all'IA Funzionante
 
-    Raccolta dei Dati Grezzi:
-        Abbiamo scritto uno script (scripts/download_data.py) che recupera due tipi di dati fondamentali:
-            Il Dizionario delle Carte: Un file JSON completo da Scryfall con tutte le informazioni su ogni carta di Magic.
-            Le Liste dei Cubi: Liste di carte specifiche per i cubi che vogliamo draftare, scaricate da CubeCobra.
-        Abbiamo reso gli script di download robusti, gestendo errori di rete e limiti delle API.
+Questo documento riassume il percorso di sviluppo del nostro bot per il draft, evidenziando le decisioni strategiche, le sfide superate e lo stato attuale del progetto.
 
-Fase 2: Creazione del Simulatore di Draft
+### Fase 1: Costruzione delle Fondamenta (Setup e Simulazione)
 
-Con i dati a disposizione, abbiamo costruito il "tavolo da gioco".
+L'obiettivo iniziale era creare un ambiente robusto e un "tavolo da gioco" virtuale.
 
-    Simulatore di Regole:
-        È stata creata la classe DraftSimulator (src/environment/draft_simulator.py), un "arbitro" che gestisce l'intero processo di un draft (creazione buste, passaggi, turni) senza conoscere le regole del gioco di Magic.
+1.  **Infrastruttura del Progetto:**
+    *   È stata creata una **struttura di directory professionale** che separa il codice sorgente (`src`), gli script eseguibili (`scripts`), i dati (`data`) e la documentazione (`docs`).
+    *   È stato configurato un **ambiente virtuale (`venv`)** e un file `requirements.txt` per garantire un'installazione pulita e riproducibile delle dipendenze (`torch`, `pandas`, etc.).
 
-    Agenti di Baseline:
-        RandomBot: Un bot che sceglie carte a caso. Utile come baseline per misurare le performance future.
-        ScoringBot: Il nostro primo bot "intelligente", basato su regole semplici (euristiche). Questo bot è stato fondamentale perché:
-            Ci ha permesso di creare un agente con un comportamento sensato (es. rimanere nei propri colori).
-            È diventato lo strumento per generare i nostri dati di training.
+2.  **Pipeline di Raccolta Dati:**
+    *   È stato sviluppato uno script (`scripts/downloaddata.py`) per scaricare automaticamente:
+        *   Un **database completo di carte comuni** da Scryfall, che funge da nostra enciclopedia.
+        *   Diverse **liste di cubi "Pauper"** da CubeCobra, per fornire varietà di ambienti di draft.
+    *   Lo script è stato reso robusto per gestire errori di rete e limiti delle API.
 
-    Feature Engineering:
-        È stato creato un CardEncoder (src/features/card_encoders.py) per tradurre le informazioni testuali di una carta (colore, costo, tipo, P/T) in un vettore numerico, il linguaggio che i modelli di machine learning capiscono.
+3.  **Ambiente di Simulazione:**
+    *   È stata implementata una classe `DraftSimulator` che gestisce un draft completo a 8 giocatori, rispettando le regole di creazione e passaggio delle buste.
+    *   È stato creato un `RandomBot` come baseline per i test futuri.
 
-Fase 3: Generazione del Dataset di Training Sintetico
+### Fase 2: Sviluppo di un'IA Basata su Regole (Lo "ScoringBot")
 
-Questo è stato il passo cruciale che ci ha permesso di superare la mancanza di dati reali per il nostro cubo.
+Per superare la mancanza di dati di draft umani, abbiamo deciso di creare un "maestro" artificiale da cui imparare.
 
-    Il Problema: Non avevamo log di draft umani specifici per il Pauper Cube.
+1.  **Feature Engineering Avanzato (`CardEncoder`):**
+    *   Abbiamo costruito un codificatore che trasforma ogni carta in un **vettore numerico ricco di informazioni**.
+    *   Questo vettore non include solo dati base (colore, costo, tipo, P/T), ma è stato potenziato per riconoscere:
+        *   **21 Keyword cruciali** (es. `Flying`, `Deathtouch`, `Haste`).
+        *   **28 Pattern di abilità testuali** (es. `draw a card`, `destroy target creature`, `counter spell`).
+    *   Questo ha permesso al nostro sistema di "leggere" le carte in modo molto più dettagliato.
 
-    La Soluzione (Bootstrap): Abbiamo usato il nostro ScoringBot per creare dati da solo.
-        È stato creato lo script scripts/generate_logs.py.
-        Questo script fa draftare 8 ScoringBot l'uno contro l'altro per un numero N di volte.
-        Ogni singola scelta di ogni bot viene registrata da un DraftLogger.
+2.  **Creazione dello `ScoringBot` "Maestro":**
+    *   Abbiamo sviluppato un bot basato su regole (`ScoringBot`) la cui logica di scelta non è primitiva, ma **olistica**.
+    *   Il suo punteggio per una carta è una **somma pesata** di 8 diverse metriche, tra cui sinergia di colore, curva di mana, evasione, rimozioni, vantaggio carte e altre sinergie.
+    *   Questo bot agisce come un giocatore esperto ma prevedibile, creando un modello di comportamento di alta qualità da cui imparare.
 
-    Il Risultato: Una cartella (data/processed/draft_logs/) piena di migliaia di file JSON. Ogni file rappresenta un singolo punto dati per il nostro training, contenente:
-        Lo stato del draft al momento della scelta (i vettori del pack e del pool).
-        L'azione scelta (il vettore della carta presa).
+### Fase 3: Addestramento di un Modello Supervisionato (L'IA attuale)
 
-Fase 4: Preparazione dei Dati per il Training
+Con un "maestro" e un codificatore potente, abbiamo addestrato la nostra prima vera rete neurale.
 
-Abbiamo trasformato il nostro tesoro di file JSON in un formato pronto per PyTorch.
+1.  **Generazione di un Dataset Sintetico di Alta Qualità:**
+    *   È stato creato lo script `generatelogs.py`, che fa draftare 8 `ScoringBot` l'uno contro l'altro per centinaia di draft.
+    *   Ogni singola decisione viene salvata come un file `.json`, contenente lo stato del draft (i vettori ricchi del `pack` e del `pool`) e la carta scelta. Questo è diventato il nostro dataset di training.
 
-    Gestione dei Dati Variabili: Abbiamo capito che ogni campione di dati ha dimensioni diverse (il pack e il pool cambiano dimensione a ogni pick).
-    DataLoader Personalizzato:
-        È stata creata la classe DraftLogDataset in src/data/loaders.py per leggere i singoli file di log.
-        È stata implementata una custom_collate_fn che risolve il problema delle dimensioni variabili tramite padding, assicurando che ogni batch di dati abbia una forma consistente.
+2.  **Pipeline di Dati PyTorch (`DataLoader`):**
+    *   È stata implementata una classe `DraftLogDataset` per leggere i nostri file di log.
+    *   È stata creata una `custom_collate_fn` con **padding** per gestire la natura variabile dei dati di draft (i pack e i pool hanno dimensioni diverse a ogni pick), rendendoli compatibili con PyTorch.
 
-Dove Siamo Ora
+3.  **Architettura della Rete Neurale (`PolicyNetwork`):**
+    *   È stato definito un modello basato su MLP (Multi-Layer Perceptron).
+    *   L'architettura **riassume il pool di carte** calcolandone la media e poi **concatena** questa informazione con ogni carta della busta, per poi calcolare un punteggio di desiderabilità per ciascuna.
 
-Abbiamo completato con successo tutta la pipeline di preparazione dei dati. Abbiamo un DataLoader funzionante che può servire batch di dati di training, puliti e pronti, alla nostra futura rete neurale.
+4.  **Training e Risultati:**
+    *   È stato creato un ciclo di training completo (`scripts/trainmodel.py`) che ha addestrato il modello sui dati generati. La loss è scesa in modo significativo (es. da 2.3 a 0.7), indicando un apprendimento avvenuto con successo.
+    *   Il risultato è un **modello addestrato (`.pth`)**, il "cervello" della nostra IA.
 
-Abbiamo costruito il "tagliere" e preparato tutti gli ingredienti. Ora siamo pronti per iniziare a cucinare: definire il modello e avviare il training.
+### Fase 4: Valutazione e Stato Attuale
+
+Abbiamo chiuso il cerchio, creando un bot basato sull'IA e un sistema per valutarlo.
+
+1.  **Creazione dell'`AIBot`:**
+    *   È stata implementata una classe `AIBot` che carica il modello addestrato e lo usa per prendere decisioni in tempo reale durante un draft.
+
+2.  **Sistema di Valutazione Numerica (`evaluate_deck`):**
+    *   È stata sviluppata una funzione sofisticata che analizza un mazzo di 45 carte e gli assegna un **punteggio di qualità** basato su tutte le feature avanzate che abbiamo definito (coerenza, curva, evasione, rimozioni, etc.).
+
+3.  **Risultati Attuali:**
+    *   Lanciando `scripts/evaluatemodel.py`, abbiamo messo il nostro `AIBot` contro gli `ScoringBot`.
+    *   **Successo:** L'IA ottiene punteggi di mazzo molto alti, dimostrando di aver imparato a dare valore a carte con buone keyword e abilità.
+    *   **Limite Identificato:** L'IA, pur riconoscendo le carte forti, mostra una **disciplina di colore inferiore** rispetto allo `ScoringBot`. Tende a prendere la "carta migliore" in assoluto, faticando a consolidare un piano di colori ristretto.
+
+### Prossimi Passi
+
+Abbiamo raggiunto il limite del nostro modello attuale. Per superare la "mancanza di disciplina" e insegnare all'IA a comprendere le sinergie più profonde, il prossimo passo è evolvere l'architettura della rete neurale, passando a un **modello basato su Transformer**.
