@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 from .draft import Card, DraftPack, Player
-from .opponents import BaseBot
+from .opponents import ScoringBot
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ class DraftSimulator:
     Può opzionalmente loggare ogni pick per la generazione di dati.
     """
     # Tutti i metodi seguenti devono avere questo livello di indentazione (4 spazi)
-    def __init__(self, cube_list: List[Dict], bots: List[BaseBot], 
+    def __init__(self, cube_list: List[Dict], bots: List[ScoringBot], 
                  num_players: int = 8, pack_size: int = 15, num_packs: int = 3,
                  draft_id: int = 0, logger: Optional['DraftLogger'] = None):
         

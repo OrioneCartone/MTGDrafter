@@ -8,7 +8,7 @@ from src.environment.draft import Card, DraftPack, Player
 from src.features.cardencoders import CardEncoder
 from src.models.policynetwork import PolicyNetwork
 from src.models.transformerdrafter import TransformerDrafter 
-from src.evaluation.evaluator import score_card_intrinsic_quality
+
 
 # --- MODIFICA CHIAVE: Importa TUTTE le costanti necessarie ---
 from src.utils.constants import (
@@ -30,7 +30,6 @@ class RandomBot(BaseBot):
         print(f"  -> Bot {self.player.player_id} (Random) sceglie: {chosen_card.name}")
         return chosen_card
 
-from src.evaluation.evaluator import score_card_intrinsic_quality
 
 class ScoringBot(BaseBot):
     """
@@ -122,7 +121,7 @@ class AIBot(BaseBot):
     """
     Un bot che usa il modello TransformerDrafter addestrato per prendere decisioni.
     """
-    # Rimuoviamo 'model_type' dal costruttore
+
     def __init__(self, player: Player, model_path: Path):
         super().__init__(player)
         self.encoder = CardEncoder()
