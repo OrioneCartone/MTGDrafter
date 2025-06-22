@@ -15,12 +15,12 @@ from src.utils.constants import FEATURE_SIZE
 # --- Configurazione del Training (Esperimento Transformer) ---
 LOGS_DIR = PROJECT_ROOT / "data" / "processed" / "pauper_generalist_logs"
 # --- MODIFICA 2: Salviamo in una nuova cartella per non sovrascrivere ---
-MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "transformer_v1" / "model_final.pth"
+MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "transformer_v1" 
 
 # Hyperparameters
 BATCH_SIZE = 64 # Riduciamo un po' il batch size, i transformer usano più memoria
 LEARNING_RATE = 5e-5 # I transformer spesso beneficiano di un learning rate più basso
-NUM_EPOCHS = 10
+NUM_EPOCHS = 1
 def main():
     """Addestra il modello Transformer."""
     print("--- Avvio Script di Addestramento (TransformerDrafter v1) ---")
@@ -48,8 +48,11 @@ def main():
     print(f"Modello creato. Parametri totali: {total_params:,}")
     
     trainer = Trainer(
-        model=model, train_loader=train_loader, learning_rate=LEARNING_RATE,
-        device=device, model_dir=MODEL_SAVE_DIR
+        model=model,
+        train_loader=train_loader,
+        learning_rate=LEARNING_RATE,
+        device=device,
+        save_dir=MODEL_SAVE_DIR # Usa il nuovo nome 'save_dir'
     )
     
     trainer.train(num_epochs=NUM_EPOCHS)

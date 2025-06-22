@@ -5,26 +5,25 @@ from pathlib import Path
 from tqdm import tqdm
 
 class Trainer:
-    """Gestisce il ciclo di addestramento completo."""
     def __init__(
         self,
-        model: nn.Module, # Ora accetta un modello generico
+        model: nn.Module,
         train_loader: DataLoader,
         learning_rate: float = 1e-4,
         device: str = 'cpu',
-        model_dir: Path = Path("models/experiments")
+        save_dir: Path = Path("models/experiments") # Rinominato per chiarezza
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
         self.device = device
-        self.model_dir = model_dir
+        self.save_dir = save_dir
         
-        self.model_dir.mkdir(parents=True, exist_ok=True)
+        self.save_dir.mkdir(parents=True, exist_ok=True)
         
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
         
-        print(f"Trainer inizializzato. Modello su dispositivo: '{self.device}'.")
+        print(f"Trainer inizializzato. Modelli verranno salvati in: '{self.save_dir}'.")
 
     def train_epoch(self, epoch_num: int) -> float:
         self.model.train()
@@ -52,17 +51,20 @@ class Trainer:
         return total_loss / len(self.train_loader)
 
     def train(self, num_epochs: int):
+        """Esegue il ciclo di addestramento completo per N epoche."""
         print(f"\n--- Inizio Addestramento per {num_epochs} epoche ---")
         
         for epoch in range(num_epochs):
             avg_epoch_loss = self.train_epoch(epoch)
             print(f"Fine Epoch {epoch+1}/{num_epochs} - Loss media: {avg_epoch_loss:.4f}")
             
-            checkpoint_path = self.model_dir / f"model_epoch_{epoch+1}.pth"
-            torch.save(self.model.state_dict(), checkpoint_path)
+            checkpoint_path = self.save_dir / f"model_epoch_{epoch+1}.pth"
+            torch.save(self.model.state_dict(), str(checkpoint_path)) # Usiamo str() per sicurezza
             print(f"Checkpoint salvato in: {checkpoint_path}")
             
         print("\n--- Addestramento Completato ---")
-        final_model_path = self.model_dir / "model_final.pth"
-        torch.save(self.model.state_dict(), final_model_path)
+        
+        # Salviamo il modello finale come un file, non una cartella
+        final_model_path = self.save_dir / "model_final.pth"
+        torch.save(self.model.state_dict(), str(final_model_path))
         print(f"Modello finale salvato in: {final_model_path}")
