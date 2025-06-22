@@ -1,10 +1,10 @@
 from pathlib import Path
 import sys
 
-# --- BLOCCO DI CODICE EFFETTIVO ---
+
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
-# --- FINE BLOCCO ---
+
 
 from src.data.collectors import download_scryfall_commons, download_cubecobra_list
 
