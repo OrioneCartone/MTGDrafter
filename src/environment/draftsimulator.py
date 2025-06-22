@@ -52,6 +52,7 @@ class DraftSimulator:
             packs.append(pack)
         return packs
 
+
     def run_draft(self, verbose: bool = False) -> Dict[int, Player]:
         """Esegue l'intera simulazione del draft."""
         if verbose: print(f"\n--- INIZIO DRAFT #{self.draft_id} ---")
@@ -65,29 +66,40 @@ class DraftSimulator:
                 
                 choices_this_turn = [None] * self.num_players
                 
+                # Fase 1: Ogni bot decide la sua mossa
                 for i in range(self.num_players):
                     bot = self.bots[i]
                     pack_for_bot = current_packs[i]
                     chosen_card = bot.pick(pack_for_bot, pack_number, pick_number)
                     choices_this_turn[i] = chosen_card
 
+                # Fase 2: Aggiorna lo stato e logga la decisione
                 for i in range(self.num_players):
                     player = self.players[i]
                     chosen_card = choices_this_turn[i]
                     pack_before_pick = current_packs[i]
-                    pool_before_pick = list(player.pool)
+                    pool_before_pick = list(player.pool) # Copia del pool PRIMA di aggiungere la nuova carta
 
+                    # --- LOGICA DI LOGGING CORRETTA ---
+                    # Chiamiamo il logger qui, ora che abbiamo una 'chosen_card' valida.
                     if self.logger:
                         self.logger.log_pick(
-                            draft_id=self.draft_id, player_id=player.player_id,
-                            pack_num=pack_number, pick_num=pick_number,
-                            pack=pack_before_pick.cards, pool=pool_before_pick, choice=chosen_card
+                            draft_id=self.draft_id,
+                            player_id=player.player_id,
+                            pack_num=pack_number,
+                            pick_num=pick_number,
+                            pack=pack_before_pick.cards,
+                            pool=pool_before_pick,
+                            choice=chosen_card # Ora 'choice' non è mai None
                         )
+                    # --- FINE LOGICA CORRETTA ---
 
+                    # Finalizza l'azione
                     if chosen_card in pack_before_pick.cards:
                         player.add_to_pool(chosen_card)
                         pack_before_pick.cards.remove(chosen_card)
                 
+                # Fase 3: Passa le buste
                 if pack_number % 2 == 1:
                     current_packs = current_packs[1:] + current_packs[:1]
                 else:
