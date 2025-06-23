@@ -52,7 +52,7 @@ def main():
         train_loader=train_loader,
         learning_rate=LEARNING_RATE,
         device=device,
-        save_dir=MODEL_SAVE_DIR # Usa il nuovo nome 'save_dir'
+        save_dir=MODEL_SAVE_DIR 
     )
     
     trainer.train(num_epochs=NUM_EPOCHS)
