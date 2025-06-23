@@ -1,52 +1,60 @@
 import json
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 import time
 
-from ..environment.draft import Card
-from ..features.cardencoders import CardEncoder
+from src.environment.draft import Card
+from src.features.cardencoders import CardEncoder
 
 class DraftLogger:
     """
-    Gestisce il salvataggio dei dati di un draft in un formato strutturato,
-    pronto per essere usato per l'addestramento.
+    Registra gli eventi di un draft in un formato strutturato (JSON)
+    per l'addestramento del modello.
     """
-    def __init__(self, output_dir: Path):
-        self.output_dir = output_dir
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self, log_dir: Path):
+        self.log_dir = log_dir
+        self.log_dir.mkdir(parents=True, exist_ok=True)
         self.encoder = CardEncoder()
-        print(f"Logger inizializzato. I log verranno salvati in: {self.output_dir}")
+        self._current_draft_data: Dict[Any, Dict] = {}
 
-    def log_pick(self, draft_id: int, player_id: int, pack_num: int, pick_num: int, pack: List[Card], pool: List[Card], choice: Card):
-        """
-        Salva una singola decisione di draft convertendo le carte in vettori.
-        """
-        # Per evitare di ricalcolare il vettore della carta scelta
-        choice_vector = self.encoder.encode_card(choice.details)
+    def start_draft(self, draft_id: Any):
+        """Inizializza la struttura dati per un nuovo log di draft."""
+        if draft_id not in self._current_draft_data:
+            self._current_draft_data[draft_id] = {
+                "draft_id": draft_id,
+                "picks": []  # <-- Ecco la chiave che mancava!
+            }
+
+    def log_pick(self, draft_id: Any, player_id: int, pack_num: int, pick_num: int, pack: List[Card], pool: List[Card], choice: Card):
+        """Registra un singolo evento di pick, convertendo le carte in vettori."""
+        if draft_id not in self._current_draft_data:
+            self.start_draft(draft_id)
+
+        try:
+            choice_index = pack.index(choice)
+        except ValueError:
+            choice_index = next((i for i, c in enumerate(pack) if c.name == choice.name), -1)
         
-        pack_vectors = []
-        for card in pack:
-            # Assicuriamoci che la carta scelta sia presente nel pack (per coerenza)
-            if card.details['id'] == choice.details['id']:
-                pack_vectors.append(choice_vector)
-            else:
-                pack_vectors.append(self.encoder.encode_card(card.details))
+        if choice_index == -1: return
 
-        log_entry = {
-            'draft_id': draft_id,
-            'player_id': player_id,
-            'pack_num': pack_num,
-            'pick_num': pick_num,
-            'pack_vectors': pack_vectors,
-            'pool_vectors': [self.encoder.encode_card(c.details) for c in pool],
-            'choice_vector': choice_vector,
+        pack_vectors = [self.encoder.encode_card(c.details) for c in pack]
+        pool_vectors = [self.encoder.encode_card(c.details) for c in pool]
+
+        pick_data = {
+            "player_id": player_id,
+            "pack_num": pack_num,
+            "pick_num": pick_num,
+            "pack": pack_vectors,
+            "pool": pool_vectors,
+            "choice_index": choice_index
         }
-        
-        # Usiamo un timestamp per un nome di file unico
-        timestamp = int(time.time() * 1000)
-        filename = f"log_{draft_id}_{player_id}_{pack_num}_{pick_num}_{timestamp}.json"
-        filepath = self.output_dir / filename
-        
-        with open(filepath, 'w') as f:
-            json.dump(log_entry, f)
+        self._current_draft_data[draft_id]["picks"].append(pick_data)
+
+    def save_draft_log(self, draft_id: Any):
+        """Salva il log del draft completato in un file JSON e lo rimuove dalla memoria."""
+        if draft_id in self._current_draft_data:
+            log_path = self.log_dir / f"draft_log_{draft_id}.json"
+            with open(log_path, 'w', encoding='utf-8') as f:
+                json.dump(self._current_draft_data[draft_id], f, indent=2)
+            del self._current_draft_data[draft_id]
 

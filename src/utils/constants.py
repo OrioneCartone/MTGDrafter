@@ -1,4 +1,5 @@
-# Questo file definisce le costanti globali del progetto.
+# Questo file definisce le costanti strutturali del progetto.
+# Gli iperparametri e i percorsi sono definiti in /config/config.yaml
 
 # ========================== KEYWORD UFFICIALI ==========================
 KEYWORD_LIST = [
@@ -65,26 +66,18 @@ ABILITY_PATTERNS = {
     'monarch': ['you become the monarch'],
     'initiative': ['you take the initiative'],
 
-    # F) Tipi di Abilità Strutturali
+    # F) Tipi di Abilità Strutturali (attualmente non usate per pattern matching)
     'has_activated_ability_mana': [], 
     'has_activated_ability_tap': [],
     'has_triggered_ability': []
 }
 
 # ========================== CALCOLO DIMENSIONE VETTORE ==========================
-OLD_FEATURE_SIZE = 16
+# Queste sono costanti derivate dalla struttura dei dati, non iperparametri.
+BASE_FEATURE_SIZE = 6 + 1 + 7 + 2  # Colors(6) + CMC(1) + Type(7) + P/T(2) = 16
 KEYWORD_FEATURE_SIZE = len(KEYWORD_LIST)
 ABILITY_FEATURE_SIZE = len(ABILITY_PATTERNS)
-FEATURE_SIZE = OLD_FEATURE_SIZE + KEYWORD_FEATURE_SIZE + ABILITY_FEATURE_SIZE
 
-# ========================== PARAMETRI MODELLO ==========================
-DRAFTS_PER_CUBE = 1
-BATCH_SIZE = 64 # Riduciamo un po' il batch size, i transformer usano più memoria
-LEARNING_RATE = 5e-5 # I transformer spesso beneficiano di un learning rate più basso
-NUM_EPOCHS = 1
-NUM_SIMULATIONS = 100 
-# ========================== IPERPARAMETRI MODELLO ==========================
-MAX_PACK_SIZE = 15
-MAX_POOL_SIZE = 45
-MODEL_EMBED_DIM = 128
-MODEL_HIDDEN_DIM = 256
+# La dimensione totale è la somma di tutte le parti.
+# Questo è l'UNICO punto in cui la dimensione totale viene definita.
+FEATURE_SIZE = BASE_FEATURE_SIZE + KEYWORD_FEATURE_SIZE + ABILITY_FEATURE_SIZE

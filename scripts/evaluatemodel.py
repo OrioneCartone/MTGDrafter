@@ -2,148 +2,141 @@ from pathlib import Path
 import sys
 import json
 import torch
-import random
-import time
+import numpy as np
 from tqdm import tqdm
-import pandas as pd # Useremo pandas per una bella visualizzazione finale
+from typing import Dict
 
-# Aggiunge la root del progetto al path di Python
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
 
-# Importa tutti i moduli necessari
+from src.utils.config_loader import CONFIG
+from src.environment.draft import Card, Player
 from src.environment.draftsimulator import DraftSimulator
-from src.environment.opponents import ScoringBot, AIBot
-from src.environment.draft import Player
-from src.utils.constants import FEATURE_SIZE, MAX_POOL_SIZE, KEYWORD_LIST, ABILITY_PATTERNS, NUM_SIMULATIONS
-from src.evaluation.evaluator import evaluate_deck
-
-
-# --- Configurazione della Valutazione ---
-DATA_DIR = PROJECT_ROOT / "data"
-MODEL_PATH = PROJECT_ROOT / "models" / "experiments" / "transformer_v1" / "model_final.pth"
-CARD_DB_PATH = DATA_DIR / "external" / "scryfall_commons.json"
-CUBE_LIST_PATH = DATA_DIR / "raw" / "cube_lists" / "thepaupercube.json"
-
-NUM_PLAYERS = 8
-# Numero di draft da simulare per avere dati statistici
+from src.environment.opponents import AIBot, ScoringBot
+from src.evaluation.deckanalyzer import evaluate_deck
 
 def load_json_file(path: Path):
-    """Carica un file JSON e gestisce l'errore se non esiste."""
     if not path.exists():
         print(f"ERRORE: Il file {path} non è stato trovato.")
         sys.exit(1)
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
-
-class EvaluationSuite:
-    """Gestisce l'esecuzione di N simulazioni e l'aggregazione dei risultati."""
-    def __init__(self, cube_full_details, model_path):
-        self.cube_full_details = cube_full_details
-        self.model_path = model_path
-        self.results = []
-
-    def run_single_simulation(self, draft_id: int):
-        """Esegue un singolo draft completo."""
-        # Creiamo un seed diverso per ogni simulazione per garantire la varietà
-        seed = int(time.time() * 1000) + draft_id
-        random.seed(seed)
+def print_decks_table(final_players: Dict[int, Player], draft_num: int):
+    """Stampa i mazzi dei primi 4 giocatori in una tabella comparativa."""
+    player_ids_to_show = sorted(final_players.keys())[:4]
+    
+    decks, headers = [], []
+    for pid in player_ids_to_show:
+        player = final_players[pid]
+        player_type = "AI Bot" if pid == 0 else "Scoring Bot"
+        headers.append(f"{player_type} (P{pid})")
         
-        # Configurazione del tavolo: 1 AI vs 7 ScoringBot
-        bots = []
-        ai_player = Player(player_id=0)
-        ai_bot = AIBot(player=ai_player, model_path=self.model_path)
-        bots.append(ai_bot)
-        for i in range(1, NUM_PLAYERS):
-            bots.append(ScoringBot(Player(player_id=i)))
-            
-        simulator = DraftSimulator(
-            cube_list=list(self.cube_full_details), # Passa una copia del cubo
-            bots=bots,
-            draft_id=draft_id
-        )
-        final_pools = simulator.run_draft(verbose=False) # Eseguiamo in modalità silenziosa
+        sorted_pool = sorted(player.pool, key=lambda c: (c.details.get('cmc', 99), c.name))
+        decks.append([c.name for c in sorted_pool])
 
-        # Analizza e salva i risultati di questo draft
-        for player_id, player in final_pools.items():
-            bot_type = "AI" if player_id == 0 else "Scoring"
-            deck_metrics = evaluate_deck(player.pool)
+    max_rows = max(len(deck) for deck in decks) if decks else 0
+    col_width = 30
+    
+    # Stampa l'intestazione della tabella
+    print(f"\n\n===== Risultati Draft di Valutazione #{draft_num} =====")
+    header_line = "|"
+    separator_line = "+"
+    for header in headers:
+        header_line += f" {header.center(col_width-2)} |"
+        separator_line += "-" * col_width + "+"
+    print(separator_line)
+    print(header_line)
+    print(separator_line)
 
-            # Forza la presenza di tutte le metriche richieste
-            DEFAULT_KEYS = [
-                "final_score", "color_consistency", "avg_cmc", "creature_count",
-                "evasion_score", "removal_score", "card_advantage_score"
-            ]
-
-            if not isinstance(deck_metrics, dict):
-                print(f"[AVVISO] evaluate_deck ha restituito un valore non valido per il player {player_id}.")
-                deck_metrics = {}
-
-            for key in DEFAULT_KEYS:
-                deck_metrics.setdefault(key, 0.0)
-            
-            self.results.append({
-                "draft_id": draft_id,
-                "bot_type": bot_type,
-                **deck_metrics # Aggiunge tutte le metriche al dizionario
-            })
-
-    def run_all(self, num_sims: int):
-        """Esegue tutte le simulazioni e stampa l'analisi finale."""
-        print(f"\n--- Avvio suite di valutazione per {num_sims} simulazioni ---")
-        
-        for i in tqdm(range(num_sims), desc="Simulando Drafts"):
-            self.run_single_simulation(i)
-            
-        self.analyze_results()
-
-    def analyze_results(self):
-        """Converte i risultati in un DataFrame pandas e stampa le statistiche aggregate."""
-        if not self.results:
-            print("Nessun risultato da analizzare.")
-            return
-
-        df = pd.DataFrame(self.results)
-        
-        # Raggruppa i risultati per tipo di bot e calcola le medie
-        summary = df.groupby('bot_type').agg({
-            'final_score': ['mean', 'std'],
-            'color_consistency': ['mean', 'std'],
-            'avg_cmc': ['mean'],
-            'creature_count': ['mean'],
-            'evasion_score': ['mean'],
-            'removal_score': ['mean'],
-            'card_advantage_score': ['mean']
-        }).round(2)
-
-        print("\n\n--- ANALISI STATISTICA AGGREGATA ---")
-        print(f"Basata su {len(df['draft_id'].unique())} draft completi.")
-        print(summary)
-        
-        # Calcoliamo la percentuale di vittorie (il bot con il punteggio più alto in un draft)
-        top_scores = df.loc[df.groupby('draft_id')['final_score'].idxmax()]
-        win_counts = top_scores['bot_type'].value_counts(normalize=True) * 100
-        
-        print("\n--- Percentuale di volte con il punteggio più alto ---")
-        print(win_counts.round(2).to_string())
-
+    # Stampa le righe con le carte
+    for i in range(max_rows):
+        row_line = "|"
+        for deck in decks:
+            card_name = deck[i] if i < len(deck) else ""
+            row_line += f" {card_name:<{col_width-2}} |"
+        print(row_line)
+    
+    print(separator_line)
 
 def main():
-    """Script principale per l'esecuzione della suite di valutazione."""
-    print("--- Avvio Suite di Valutazione Robusta ---")
+    """Valuta il modello AI addestrato e stampa i mazzi risultanti in una tabella."""
+    print("--- Avvio Script di Valutazione Modello ---")
+    paths_config = CONFIG['paths']
+    sim_config = CONFIG['simulation']
 
-    # Carica i dati una sola volta
-    card_database = load_json_file(CARD_DB_PATH)
-    cube_list_data = load_json_file(CUBE_LIST_PATH)
+    model_dir = PROJECT_ROOT / paths_config['model_save_dir']
+    model_files = list(model_dir.glob("*.pth"))
+    if not model_files:
+        print(f"ERRORE: Nessun modello trovato in {model_dir}. Esegui prima l'addestramento.")
+        sys.exit(1)
+    model_path = max(model_files, key=lambda p: p.stat().st_mtime)
+    print(f"Valutazione del modello più recente: {model_path.name}")
+
+    card_db_path = PROJECT_ROOT / paths_config['card_db_path']
+    cube_lists_dir = PROJECT_ROOT / paths_config['cube_lists_dir']
+    card_database = load_json_file(card_db_path)
     card_db_by_name = {card['name']: card for card in card_database}
-    cube_card_names_set = set(cube_list_data['cards'])
-    cube_full_details = [card for name, card in card_db_by_name.items() if name in cube_card_names_set]
+    
+    num_players = sim_config['num_players']
+    cards_needed_for_draft = num_players * sim_config['num_packs'] * sim_config['pack_size']
+    
+    all_cubes = list(cube_lists_dir.glob("*.json"))
+    chosen_cube_path = None
+    cube_full_details = []
 
-    # Crea e avvia la suite di valutazione
-    evaluation_suite = EvaluationSuite(cube_full_details, MODEL_PATH)
-    evaluation_suite.run_all(NUM_SIMULATIONS)
+    for cube_path in all_cubes:
+        cube_data = load_json_file(cube_path)
+        cube_card_names = cube_data.get('cards', [])
+        potential_cube = [Card(name=name, details=card_db_by_name[name]) for name in cube_card_names if name in card_db_by_name]
+        if len(potential_cube) >= cards_needed_for_draft:
+            chosen_cube_path = cube_path
+            cube_full_details = potential_cube
+            break
 
+    if not chosen_cube_path:
+        print(f"ERRORE: Nessun cubo trovato in {cube_lists_dir} con abbastanza carte ({cards_needed_for_draft} necessarie).")
+        sys.exit(1)
+    
+    print(f"Uso il cubo: {chosen_cube_path.name} ({len(cube_full_details)} carte valide)")
 
-if __name__ == "__main__":
+    ai_scores, bot_scores = [], []
+    num_eval_drafts = 20
+    print(f"Esecuzione di {num_eval_drafts} draft di valutazione (Pod da {num_players} giocatori)...")
+
+    for i in tqdm(range(num_eval_drafts), desc="Valutazione Drafts"):
+        ai_player = Player(player_id=0)
+        bots = [AIBot(ai_player, model_path)]
+        bots += [ScoringBot(Player(player_id=j)) for j in range(1, num_players)]
+        
+        simulator = DraftSimulator(
+            cube_list=list(cube_full_details),
+            bots=bots, 
+            num_players=num_players,
+            pack_size=sim_config['pack_size'], 
+            num_packs=sim_config['num_packs'], 
+            draft_id=f"eval_{i}"
+        )
+        final_players = simulator.run_draft(verbose=False)
+        
+        ai_deck_metrics = evaluate_deck(final_players[0].pool)
+        ai_scores.append(ai_deck_metrics['final_score'])
+        
+        current_bot_scores = [evaluate_deck(final_players[j].pool)['final_score'] for j in range(1, num_players)]
+        bot_scores.append(np.mean(current_bot_scores) if current_bot_scores else 0)
+
+        # --- MODIFICA: Stampa i mazzi in una tabella ---
+        print_decks_table(final_players, draft_num=i+1)
+
+    avg_ai_score = np.mean(ai_scores)
+    avg_bot_score = np.mean(bot_scores)
+    win_rate = sum(1 for i in range(len(ai_scores)) if ai_scores[i] > bot_scores[i]) / len(ai_scores) if ai_scores else 0
+
+    print("\n\n--- Risultati Finali Valutazione ---")
+    print(f"Punteggio medio mazzo AI: {avg_ai_score:.2f}")
+    print(f"Punteggio medio mazzo ScoringBot: {avg_bot_score:.2f}")
+    print(f"Tasso di vittoria dell'AI (punteggio mazzo superiore): {win_rate:.2%}")
+    print("------------------------------------")
+
+if __name__ == '__main__':
     main()
