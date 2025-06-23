@@ -20,7 +20,7 @@ CARD_DB_PATH = DATA_DIR / "external" / "scryfall_commons.json"
 CUBE_LISTS_DIR = DATA_DIR / "raw" / "cube_lists"
 
 NUM_PLAYERS = 8
-DRAFTS_PER_CUBE = 1
+DRAFTS_PER_CUBE = 100
 
 def load_json_file(path: Path):
     if not path.exists():

@@ -20,7 +20,7 @@ MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "transformer_v1"
 # Hyperparameters
 BATCH_SIZE = 64 # Riduciamo un po' il batch size, i transformer usano più memoria
 LEARNING_RATE = 5e-5 # I transformer spesso beneficiano di un learning rate più basso
-NUM_EPOCHS = 1
+NUM_EPOCHS = 50
 def main():
     """Addestra il modello Transformer."""
     print("--- Avvio Script di Addestramento (TransformerDrafter v1) ---")
