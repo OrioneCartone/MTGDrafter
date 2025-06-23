@@ -9,7 +9,7 @@ class CardEncoder:
     includendo informazioni base, keyword e abilità testuali e strutturali.
     """
     def __init__(self):
-        self.color_order = ['W', 'U', 'B', 'R', 'G']
+        self.color_order = ['W', 'U', 'B', 'R', 'G', 'C']  # Ordine dei colori
         self.type_order = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land', 'Planeswalker']
 
     def _encode_colors(self, card_details: Dict) -> List[int]:

@@ -17,6 +17,15 @@ class DraftPack:
     """Rappresenta una busta di carte."""
     cards: List[Card]
 
+    def remove_card(self, card_to_remove: Card):
+        """Rimuove una carta specifica dalla busta."""
+        try:
+            self.cards.remove(card_to_remove)
+        except ValueError:
+            # Questa eccezione si verifica se la carta non è più nel pacchetto.
+            # Non dovrebbe accadere in una simulazione normale, ma è una buona protezione.
+            print(f"AVVISO: La carta '{card_to_remove.name}' non è stata trovata nel pacchetto per la rimozione.")
+
 @dataclass
 class Player:
     """Rappresenta un giocatore (o bot) nel draft."""

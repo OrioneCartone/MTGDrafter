@@ -72,11 +72,17 @@ ABILITY_PATTERNS = {
 }
 
 # ========================== CALCOLO DIMENSIONE VETTORE ==========================
-OLD_FEATURE_SIZE = 15 
+OLD_FEATURE_SIZE = 16
 KEYWORD_FEATURE_SIZE = len(KEYWORD_LIST)
 ABILITY_FEATURE_SIZE = len(ABILITY_PATTERNS)
 FEATURE_SIZE = OLD_FEATURE_SIZE + KEYWORD_FEATURE_SIZE + ABILITY_FEATURE_SIZE
 
+# ========================== PARAMETRI MODELLO ==========================
+DRAFTS_PER_CUBE = 1
+BATCH_SIZE = 64 # Riduciamo un po' il batch size, i transformer usano più memoria
+LEARNING_RATE = 5e-5 # I transformer spesso beneficiano di un learning rate più basso
+NUM_EPOCHS = 1
+NUM_SIMULATIONS = 100 
 # ========================== IPERPARAMETRI MODELLO ==========================
 MAX_PACK_SIZE = 15
 MAX_POOL_SIZE = 45

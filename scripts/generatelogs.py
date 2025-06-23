@@ -12,6 +12,7 @@ from src.environment.draftsimulator import DraftSimulator
 from src.environment.opponents import ScoringBot
 from src.environment.draft import Player
 from src.training.logger import DraftLogger
+from src.utils.constants import DRAFTS_PER_CUBE
 
 # --- Configurazione ---
 DATA_DIR = PROJECT_ROOT / "data"
@@ -20,7 +21,7 @@ CARD_DB_PATH = DATA_DIR / "external" / "scryfall_commons.json"
 CUBE_LISTS_DIR = DATA_DIR / "raw" / "cube_lists"
 
 NUM_PLAYERS = 8
-DRAFTS_PER_CUBE = 1
+
 
 def load_json_file(path: Path):
     if not path.exists():

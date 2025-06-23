@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 from .draft import Card, DraftPack, Player
-from .opponents import ScoringBot
+from .opponents import BaseBot # MODIFICA: Importa la classe base per accettare tutti i tipi di bot
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ class DraftSimulator:
     Può opzionalmente loggare ogni pick per la generazione di dati.
     """
     # Tutti i metodi seguenti devono avere questo livello di indentazione (4 spazi)
-    def __init__(self, cube_list: List[Dict], bots: List[ScoringBot], 
+    def __init__(self, cube_list: List[Dict], bots: List[BaseBot], # MODIFICA: Usa BaseBot per flessibilità
                  num_players: int = 8, pack_size: int = 15, num_packs: int = 3,
                  draft_id: int = 0, logger: Optional['DraftLogger'] = None):
         
@@ -52,7 +52,6 @@ class DraftSimulator:
             packs.append(pack)
         return packs
 
-
     def run_draft(self, verbose: bool = False) -> Dict[int, Player]:
         """Esegue l'intera simulazione del draft."""
         if verbose: print(f"\n--- INIZIO DRAFT #{self.draft_id} ---")
@@ -61,49 +60,49 @@ class DraftSimulator:
             if verbose: print(f"\n--- Inizio Round {pack_number}/{self.num_packs} ---")
             current_packs = self._create_packs()
 
+            # Determina la direzione di passaggio (es. orario per round 1 e 3, antiorario per 2)
+            pass_direction = 1 if (pack_number % 2) != 0 else -1
+
             for pick_number in range(1, self.pack_size + 1):
                 if verbose: print(f"\n-- Pick {pick_number}/{self.pack_size} --")
                 
-                choices_this_turn = [None] * self.num_players
+                choices_this_turn = {} # Usiamo un dizionario per mappare bot -> scelta
                 
-                # Fase 1: Ogni bot decide la sua mossa
+                # Fase 1: Ogni bot decide la sua mossa in parallelo (concettualmente)
                 for i in range(self.num_players):
                     bot = self.bots[i]
                     pack_for_bot = current_packs[i]
-                    chosen_card = bot.pick(pack_for_bot, pack_number, pick_number)
-                    choices_this_turn[i] = chosen_card
+                    if pack_for_bot and pack_for_bot.cards: # Assicurati che il pacchetto non sia vuoto
+                        chosen_card = bot.pick(pack_for_bot, pack_number, pick_number)
+                        choices_this_turn[i] = (chosen_card, pack_for_bot)
 
-                # Fase 2: Aggiorna lo stato e logga la decisione
+                # Fase 2: Aggiorna stato, logga e prepara i pacchetti per il passaggio
+                next_packs = [None] * self.num_players
                 for i in range(self.num_players):
-                    player = self.players[i]
-                    chosen_card = choices_this_turn[i]
-                    pack_before_pick = current_packs[i]
-                    pool_before_pick = list(player.pool) # Copia del pool PRIMA di aggiungere la nuova carta
+                    if i not in choices_this_turn:
+                        continue
 
-                    # --- LOGICA DI LOGGING CORRETTA ---
-                    # Chiamiamo il logger qui, ora che abbiamo una 'chosen_card' valida.
+                    chosen_card, pack_before_pick = choices_this_turn[i]
+                    player = self.players[i]
+                    pool_before_pick = list(player.pool)
+
                     if self.logger:
                         self.logger.log_pick(
-                            draft_id=self.draft_id,
-                            player_id=player.player_id,
-                            pack_num=pack_number,
-                            pick_num=pick_number,
-                            pack=pack_before_pick.cards,
+                            draft_id=self.draft_id, player_id=player.player_id,
+                            pack_num=pack_number, pick_num=pick_number,
+                            pack=list(pack_before_pick.cards), # CORREZIONE: Passa una copia della lista per un logging sicuro
                             pool=pool_before_pick,
-                            choice=chosen_card # Ora 'choice' non è mai None
+                            choice=chosen_card
                         )
-                    # --- FINE LOGICA CORRETTA ---
+                    
+                    player.add_to_pool(chosen_card)
+                    pack_before_pick.remove_card(chosen_card) # ORA FUNZIONA: Chiama il metodo che abbiamo aggiunto
 
-                    # Finalizza l'azione
-                    if chosen_card in pack_before_pick.cards:
-                        player.add_to_pool(chosen_card)
-                        pack_before_pick.cards.remove(chosen_card)
+                    # Prepara il pacchetto per il prossimo giocatore
+                    pass_to_index = (i + pass_direction) % self.num_players
+                    next_packs[pass_to_index] = pack_before_pick
                 
-                # Fase 3: Passa le buste
-                if pack_number % 2 == 1:
-                    current_packs = current_packs[1:] + current_packs[:1]
-                else:
-                    current_packs = current_packs[-1:] + current_packs[:-1]
+                current_packs = next_packs # I pacchetti sono stati passati
 
-        if verbose: print(f"\n--- DRAFT #{self.draft_id} CONCLUSO ---")
-        return {player.player_id: player for player in self.players}
+        if verbose: print(f"\n--- FINE DRAFT #{self.draft_id} ---\n")
+        return {p.player_id: p for p in self.players}

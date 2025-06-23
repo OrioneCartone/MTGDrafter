@@ -10,7 +10,7 @@ from src.data.loaders import DraftLogDataset, custom_collate_fn
 # --- MODIFICA 1: Importa il nuovo modello ---
 from src.models.transformerdrafter import TransformerDrafter
 from src.training.trainer import Trainer
-from src.utils.constants import FEATURE_SIZE
+from src.utils.constants import FEATURE_SIZE, BATCH_SIZE, LEARNING_RATE, NUM_EPOCHS
 
 # --- Configurazione del Training (Esperimento Transformer) ---
 LOGS_DIR = PROJECT_ROOT / "data" / "processed" / "pauper_generalist_logs"
@@ -18,9 +18,7 @@ LOGS_DIR = PROJECT_ROOT / "data" / "processed" / "pauper_generalist_logs"
 MODEL_SAVE_DIR = PROJECT_ROOT / "models" / "experiments" / "transformer_v1" 
 
 # Hyperparameters
-BATCH_SIZE = 64 # Riduciamo un po' il batch size, i transformer usano più memoria
-LEARNING_RATE = 5e-5 # I transformer spesso beneficiano di un learning rate più basso
-NUM_EPOCHS = 1
+
 def main():
     """Addestra il modello Transformer."""
     print("--- Avvio Script di Addestramento (TransformerDrafter v1) ---")

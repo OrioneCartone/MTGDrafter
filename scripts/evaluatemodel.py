@@ -15,7 +15,7 @@ sys.path.append(str(PROJECT_ROOT))
 from src.environment.draftsimulator import DraftSimulator
 from src.environment.opponents import ScoringBot, AIBot
 from src.environment.draft import Player
-from src.utils.constants import FEATURE_SIZE
+from src.utils.constants import FEATURE_SIZE, MAX_POOL_SIZE, KEYWORD_LIST, ABILITY_PATTERNS, NUM_SIMULATIONS
 from src.evaluation.evaluator import evaluate_deck
 
 
@@ -26,7 +26,7 @@ CARD_DB_PATH = DATA_DIR / "external" / "scryfall_commons.json"
 CUBE_LIST_PATH = DATA_DIR / "raw" / "cube_lists" / "thepaupercube.json"
 
 NUM_PLAYERS = 8
-NUM_SIMULATIONS = 100 # Numero di draft da simulare per avere dati statistici
+# Numero di draft da simulare per avere dati statistici
 
 def load_json_file(path: Path):
     """Carica un file JSON e gestisce l'errore se non esiste."""
