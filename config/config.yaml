@@ -23,13 +23,13 @@ simulation:
 # ========================== GENERAZIONE LOG (per generatelogs.py) ==========================
 log_generation:
   # Numero di draft da simulare per ogni cubo per creare il dataset di training.
-  num_drafts_per_cube: 1
+  num_drafts_per_cube: 100
 
 # ========================== VALUTAZIONE (per evaluatemodel.py) ==========================
 evaluation:
   # Numero di draft da simulare per ogni cubo per valutare il modello.
   # Aumenta questo per una valutazione statisticamente più robusta.
-  drafts_per_cube: 40
+  drafts_per_cube: 100
 
 # ========================== MODELLO (per trainmodel.py) ==========================
 model:
