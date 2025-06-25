@@ -1,42 +1,124 @@
-# MTG Cube Draft AI
 
-Questo progetto ha l'obiettivo di creare un'intelligenza artificiale in grado di draftare un cubo di Magic: The Gathering. Il sistema è progettato per essere costruito passo dopo passo, partendo dalle fondamenta (raccolta dati e simulazione) fino all'addestramento di modelli di machine learning.
+# AIBot per Draft di Magic: The Gathering
 
-## Stato del Progetto
+Questo repository contiene il codice per un agente AI basato su architettura **Transformer**, addestrato per partecipare a draft di *Magic: The Gathering*. Il progetto non si limita a creare un modello, ma fornisce un intero **ecosistema** per:
 
-Abbiamo completato le prime, fondamentali fasi del progetto.
+- Generare dati  
+- Addestrare il modello  
+- Valutare le performance  
+- Testare l'agente in un ambiente di draft simulato
 
-*   ✅ **Raccolta Dati**: Script robusti per scaricare dati da Scryfall (database carte) e CubeCobra (liste cubi).
-*   ✅ **Simulatore di Draft**: Un ambiente di simulazione completo che gestisce un draft a 8 giocatori, con creazione di buste e passaggi corretti.
-*   ✅ **Bot di Baseline**:
-    *   `RandomBot`: Un agente che sceglie carte a caso, utile per i test.
-    *   `ScoringBot`: Un bot basato su regole semplici (coerenza di colori, costo di mana) che drafta in modo sorprendentemente coerente.
-*   ✅ **Feature Engineering**: Un `CardEncoder` che trasforma le informazioni di una carta in un vettore numerico, pronto per essere usato da un modello.
-*   ✅ **Generazione Dati Sintetici**: Uno script (`generate_logs.py`) che usa il simulatore per far draftare 8 `ScoringBot` l'uno contro l'altro, generando migliaia di log di draft. **Questi log formeranno il nostro dataset di addestramento.**
+L'obiettivo finale è confrontare le performance del nostro **AIBot** contro un avversario di base competente, lo **ScoringBot**, per determinare se un approccio basato su *deep learning* possa superare una solida strategia basata su euristiche.
 
-In pratica, non solo abbiamo un "tavolo da gioco" virtuale, ma abbiamo anche un metodo per creare un dataset di addestramento su misura per il nostro cubo, risolvendo il problema della mancanza di dati reali.
+---
 
-## Come Usare il Progetto
+##  Concetti Fondamentali
 
-Per replicare il progetto, segui questi passaggi.
+###  L'Agente AI (AIBot)
 
-### 1. Preparazione dell'Ambiente
+- **Architettura**: Basato su un modello **Transformer**, scelto per la sua capacità di pesare l’importanza di diversi input (le carte disponibili e quelle già selezionate).
+- **Input del modello**:
+  1. Il pacchetto di carte attuale
+  2. Il pool di carte già selezionate
+  3. Il numero della scelta attuale (es. “scelta 3 del pacchetto 1”)
+- **Output**: Un punteggio per ogni carta del pacchetto, rappresentando la preferenza secondo la strategia appresa.
 
-Assicurati di avere Python 3.10+ e gli strumenti di compilazione necessari. Su un sistema basato su Ubuntu/Debian:
+###  L'Avversario di Base (ScoringBot)
+
+Per valutare l’efficacia dell’AIBot, serve un **baseline credibile**. Lo ScoringBot è un bot basato su **euristiche** e **punteggi predefiniti**, e adotta una strategia solida:
+
+- **Valutazione Intrinseca**: Ogni carta ha un punteggio base (es. alto per rimozioni).
+- **Contesto del Draft**:
+  - *Sinergia di colore*: privilegia le carte in linea con i colori scelti.
+  - *Curva di mana*: cerca di mantenere un bilanciamento tra costi delle magie.
+  - *Segnali*: interpreta come "segnali" l’arrivo inaspettato di carte forti in pick avanzati.
+
+---
+
+##  Ciclo di Vita del Progetto
+
+Il progetto è suddiviso in 4 fasi principali, eseguibili tramite lo script `fullcycle.sh` oppure manualmente via notebook.
+
+###  Prerequisiti
+
+- Python 3.10+
+- Git
+
+###  Fase 1: Download dei Dati
+📄 `scripts/download_data.py`
+
+**Cosa fa**:
+- Scarica il database completo delle carte da **Scryfall**
+- Scarica liste di *cubi* per il draft
+
+**Perché**:
+- Le carte servono per avere info dettagliate (costo, tipo, testo, ecc.)
+- I cubi offrono ambienti di draft realistici e bilanciati
+
+---
+
+###  Fase 2: Generazione dei Log  
+📄 `scripts/generatelogs.py`
+
+**Cosa fa**:
+- Simula migliaia di draft con **solo ScoringBot**
+- Registra ogni scelta in file di log
+
+**Perché**:
+- Crea un dataset di scelte “intelligenti”
+- L’AIBot si addestra su queste decisioni, con l’obiettivo di superarle
+
+---
+
+###  Fase 3: Addestramento del Modello  
+📄 `scripts/trainmodel.py`
+
+**Cosa fa**:
+- Usa i log della Fase 2 per addestrare un **modello Transformer**
+- Il modello apprende il contesto delle scelte nel draft
+
+**Perché**:
+- Non basta riconoscere carte forti in astratto, serve comprendere il contesto
+- Fase intensiva: **l’uso di GPU è fortemente consigliato**
+
+---
+
+###  Fase 4: Valutazione Statistica  
+📄 `scripts/evaluatemodel.py`
+
+**Cosa fa**:
+- Simula nuovi draft con 1 **AIBot** contro 7 **ScoringBot**
+- Analizza i mazzi finali con il **DeckAnalyzer**
+
+**Analisi**:
+- Confronta il punteggio medio dei mazzi AIBot vs. ScoringBot
+- Esegue un **T-test statistico** per verificare la significatività dei risultati
+
+---
+
+##  Come Eseguire il Progetto
+
+###  Metodo 1: Script Automatico (Locale)
+
+Esegui l’intero ciclo in un colpo con:
+
 ```bash
-sudo apt-get update
-sudo apt-get install python3-dev build-essential
+./fullcycle.sh
+```
 
-# 1. Crea un ambiente virtuale per isolare le dipendenze
-python3 -m venv venv
+---
 
-# 2. Attiva l'ambiente (da fare ogni volta che apri un nuovo terminale)
-source venv/bin/activate
+###  Metodo 2: Notebook Interattivo (Google Colab)
 
-# 3. Installa tutte le librerie necessarie
-pip install -r requirements.txt
+**Vantaggi**:
+- Accesso a **GPU gratuite**
+- Possibilità di modificare facilmente gli **iperparametri** (epoche, learning rate, ecc.)
 
-python scripts/download_data.py
+**Il branch `colab-training` contiene**:
+- Un notebook di esempio
+- Celle per:
+  - Clonare il repository
+  - Installare le dipendenze
+  - Eseguire ogni fase in modo modulare
 
-python scripts/generate_logs.py
-## (Optional) python scripts/simulate_draft.py
+Ideale per esperimenti e ottimizzazione del modello.
