@@ -3,7 +3,8 @@
 # ========================== PERCORSI ==========================
 paths:
   # Percorso al database di carte JSON di Scryfall.
-  card_db_path: "data/external/scryfall_commons.json"
+  # MODIFICA: Puntiamo al nuovo file semplificato per performance migliori.
+  card_db_path: "data/external/scryfall_commons_simplified.json"
   # Percorso alle liste di cubi in formato JSON.
   cube_lists_dir: "data/raw/cube_lists"
   # Percorso dove verranno salvati i log di draft generati.
