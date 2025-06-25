@@ -43,12 +43,12 @@ model:
   # Dimensione massima di un pacchetto (per il padding).
   max_pack_size: 15
   # Dimensione massima del pool di un giocatore (per il padding).
-  max_pool_size: 50
+  max_pool_size: 100
 
 # ========================== ADDESTRAMENTO (per trainmodel.py) ==========================
 training:
   # Numero di epoche per l'addestramento.
-  num_epochs: 1
+  num_epochs: 20
   # Dimensione del batch per il DataLoader.
   batch_size: 64
   # Tasso di apprendimento per l'ottimizzatore.
