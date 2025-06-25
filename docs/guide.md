@@ -1,82 +1,67 @@
-Assolutamente. È il momento perfetto per consolidare tutto ciò che abbiamo costruito con una guida dettagliata. Questo ci darà un quadro chiaro dei progressi e preparerà il terreno per il prossimo grande passo.
+Questo repository contiene il codice per un agente AI basato su architettura Transformer, addestrato per partecipare a draft di Magic: The Gathering. Il progetto non si limita a creare un modello, ma fornisce un intero ecosistema per generare dati, addestrare, valutare e testare l'agente in un ambiente di draft simulato.
 
-Ecco una guida completa che puoi inserire nel tuo `README.md` o in un file separato come `docs/project_summary.md`.
+L'obiettivo finale è confrontare le performance del nostro AIBot contro un avversario di base competente, lo ScoringBot, per determinare se l'approccio basato su deep learning può superare una solida strategia basata su euristiche.
 
----
+Concetti Fondamentali
+Prima di eseguire il progetto, è utile comprendere i due attori principali e l'ambiente in cui operano.
 
-## Guida al Progetto MTG Cube Draft AI: Dalla Teoria all'IA Funzionante
+1. L'Agente AI (AIBot)
+Architettura: Il cuore dell'agente è un modello Transformer. Questa architettura è stata scelta per la sua capacità di pesare l'importanza di input diversi (le carte nel pacchetto e nel mazzo) per prendere una decisione contestuale.
+Input: Per ogni scelta, il modello riceve tre informazioni:
+Il pacchetto di carte attuale.
+Il pool di carte già selezionate dal giocatore.
+Il numero della scelta attuale (es. "scelta 3 del pacchetto 1").
+Output: Il modello produce un punteggio per ogni carta nel pacchetto, indicando la scelta migliore secondo la sua strategia appresa.
+2. L'Avversario di Base (ScoringBot)
+Per valutare se il nostro AIBot è efficace, non basta confrontarlo con un bot che sceglie a caso. Serve un avversario di base (baseline) credibile. Lo ScoringBot è un bot basato su euristiche e punteggi predefiniti:
 
-Questo documento riassume il percorso di sviluppo del nostro bot per il draft, evidenziando le decisioni strategiche, le sfide superate e lo stato attuale del progetto.
+Valutazione Intrinseca: Assegna un punteggio base a ogni carta in base alle sue abilità (es. una carta che distrugge creature ha un punteggio "removal" alto).
+Contesto del Draft: Applica bonus e malus contestuali:
+Sinergia di Colore: Privilegia le carte che si allineano ai colori principali del mazzo in costruzione.
+Curva di Mana: Cerca di bilanciare il costo delle magie per avere un mazzo giocabile.
+Segnali: Riconosce se una carta potente arriva inaspettatamente a un punto avanzato del draft, interpretandolo come un "segnale" che quel colore è poco conteso.
+Questo bot rappresenta una strategia solida e consapevole, rendendo la valutazione finale molto più significativa.
 
-### Fase 1: Costruzione delle Fondamenta (Setup e Simulazione)
+Il Ciclo di Vita del Progetto
+Il progetto è strutturato in un ciclo di 4 fasi principali, automatizzabili tramite lo script fullcycle.sh o eseguibili passo-passo in un notebook.
 
-L'obiettivo iniziale era creare un ambiente robusto e un "tavolo da gioco" virtuale.
+Prerequisiti
+Assicurati di avere Python 3.10+ e Git installati.
 
-1.  **Infrastruttura del Progetto:**
-    *   È stata creata una **struttura di directory professionale** che separa il codice sorgente (`src`), gli script eseguibili (`scripts`), i dati (`data`) e la documentazione (`docs`).
-    *   È stato configurato un **ambiente virtuale (`venv`)** e un file `requirements.txt` per garantire un'installazione pulita e riproducibile delle dipendenze (`torch`, `pandas`, etc.).
+Clona il Repository
 
-2.  **Pipeline di Raccolta Dati:**
-    *   È stato sviluppato uno script (`scripts/downloaddata.py`) per scaricare automaticamente:
-        *   Un **database completo di carte comuni** da Scryfall, che funge da nostra enciclopedia.
-        *   Diverse **liste di cubi "Pauper"** da CubeCobra, per fornire varietà di ambienti di draft.
-    *   Lo script è stato reso robusto per gestire errori di rete e limiti delle API.
+Prepara l'Ambiente Virtuale
 
-3.  **Ambiente di Simulazione:**
-    *   È stata implementata una classe `DraftSimulator` che gestisce un draft completo a 8 giocatori, rispettando le regole di creazione e passaggio delle buste.
-    *   È stato creato un `RandomBot` come baseline per i test futuri.
+Fase 1: Download dei Dati (scripts/download_data.py)
+Il primo passo è ottenere i dati grezzi necessari.
 
-### Fase 2: Sviluppo di un'IA Basata su Regole (Lo "ScoringBot")
+Cosa fa: Scarica un database completo di carte di Magic (da Scryfall) e diverse liste di "cubi" (set di carte personalizzati per il draft).
+Perché: Il database serve per avere tutte le informazioni di ogni carta (costo, tipo, testo, etc.). I cubi servono come ambienti di draft vari e bilanciati per le simulazioni.
+Fase 2: Generazione dei Log (scripts/generatelogs.py)
+L'AI ha bisogno di dati su cui addestrarsi. Non potendo usare log di draft umani, li generiamo.
 
-Per superare la mancanza di dati di draft umani, abbiamo deciso di creare un "maestro" artificiale da cui imparare.
+Cosa fa: Esegue migliaia di draft simulati usando solo ScoringBot. Ogni scelta fatta da ogni bot viene salvata in un file di log.
+Perché: Questo crea un vasto dataset di scelte "intelligenti" (secondo la logica dello ScoringBot). L'obiettivo del nostro AIBot sarà imparare a replicare e, si spera, migliorare queste decisioni.
+Fase 3: Addestramento del Modello (scripts/trainmodel.py)
+Questa è la fase di deep learning vera e propria.
 
-1.  **Feature Engineering Avanzato (`CardEncoder`):**
-    *   Abbiamo costruito un codificatore che trasforma ogni carta in un **vettore numerico ricco di informazioni**.
-    *   Questo vettore non include solo dati base (colore, costo, tipo, P/T), ma è stato potenziato per riconoscere:
-        *   **21 Keyword cruciali** (es. `Flying`, `Deathtouch`, `Haste`).
-        *   **28 Pattern di abilità testuali** (es. `draw a card`, `destroy target creature`, `counter spell`).
-    *   Questo ha permesso al nostro sistema di "leggere" le carte in modo molto più dettagliato.
+Cosa fa: Carica i log generati nella fase precedente e li usa per addestrare il modello Transformer. Il modello impara a prevedere quale carta uno ScoringBot avrebbe scelto in una data situazione.
+Perché: Allenandosi su esempi di scelte contestuali, il modello non impara solo a riconoscere le carte "forti" in astratto, ma a capire quale carta è la migliore per il mazzo che sta costruendo in quel preciso momento. Questa fase è computazionalmente intensiva e beneficia enormemente di una GPU.
+Fase 4: Valutazione Statistica (scripts/evaluatemodel.py)
+È il momento del giudizio. Il modello addestrato è davvero migliore della sua controparte basata su euristiche?
 
-2.  **Creazione dello `ScoringBot` "Maestro":**
-    *   Abbiamo sviluppato un bot basato su regole (`ScoringBot`) la cui logica di scelta non è primitiva, ma **olistica**.
-    *   Il suo punteggio per una carta è una **somma pesata** di 8 diverse metriche, tra cui sinergia di colore, curva di mana, evasione, rimozioni, vantaggio carte e altre sinergie.
-    *   Questo bot agisce come un giocatore esperto ma prevedibile, creando un modello di comportamento di alta qualità da cui imparare.
+Cosa fa: Esegue un nuovo set di simulazioni di draft. In ogni draft, un giocatore è il nostro AIBot e gli altri 7 sono ScoringBot.
+Analisi: Al termine di ogni draft, i mazzi finali vengono analizzati da un DeckAnalyzer che assegna un punteggio di qualità basato su sinergie, curva di mana e potenza delle carte.
+Risultato: Lo script confronta il punteggio medio dei mazzi dell'AIBot con quello medio dei mazzi degli ScoringBot. Esegue anche un T-test statistico per determinare se la differenza di performance è statisticamente significativa o solo frutto del caso.
+Come Eseguire il Progetto
+Metodo 1: Script Automatico (Locale)
+Per eseguire l'intero ciclo in un colpo solo, usa lo script fullcycle.sh.
 
-### Fase 3: Addestramento di un Modello Supervisionato (L'IA attuale)
+Metodo 2: Notebook Interattivo (Google Colab)
+Per sperimentare, specialmente con l'addestramento, l'uso di Google Colab è fortemente consigliato per l'accesso a GPU gratuite. Il repository contiene un branch colab-training e un notebook di esempio che permette di:
 
-Con un "maestro" e un codificatore potente, abbiamo addestrato la nostra prima vera rete neurale.
-
-1.  **Generazione di un Dataset Sintetico di Alta Qualità:**
-    *   È stato creato lo script `generatelogs.py`, che fa draftare 8 `ScoringBot` l'uno contro l'altro per centinaia di draft.
-    *   Ogni singola decisione viene salvata come un file `.json`, contenente lo stato del draft (i vettori ricchi del `pack` e del `pool`) e la carta scelta. Questo è diventato il nostro dataset di training.
-
-2.  **Pipeline di Dati PyTorch (`DataLoader`):**
-    *   È stata implementata una classe `DraftLogDataset` per leggere i nostri file di log.
-    *   È stata creata una `custom_collate_fn` con **padding** per gestire la natura variabile dei dati di draft (i pack e i pool hanno dimensioni diverse a ogni pick), rendendoli compatibili con PyTorch.
-
-3.  **Architettura della Rete Neurale (`PolicyNetwork`):**
-    *   È stato definito un modello basato su MLP (Multi-Layer Perceptron).
-    *   L'architettura **riassume il pool di carte** calcolandone la media e poi **concatena** questa informazione con ogni carta della busta, per poi calcolare un punteggio di desiderabilità per ciascuna.
-
-4.  **Training e Risultati:**
-    *   È stato creato un ciclo di training completo (`scripts/trainmodel.py`) che ha addestrato il modello sui dati generati. La loss è scesa in modo significativo (es. da 2.3 a 0.7), indicando un apprendimento avvenuto con successo.
-    *   Il risultato è un **modello addestrato (`.pth`)**, il "cervello" della nostra IA.
-
-### Fase 4: Valutazione e Stato Attuale
-
-Abbiamo chiuso il cerchio, creando un bot basato sull'IA e un sistema per valutarlo.
-
-1.  **Creazione dell'`AIBot`:**
-    *   È stata implementata una classe `AIBot` che carica il modello addestrato e lo usa per prendere decisioni in tempo reale durante un draft.
-
-2.  **Sistema di Valutazione Numerica (`evaluate_deck`):**
-    *   È stata sviluppata una funzione sofisticata che analizza un mazzo di 45 carte e gli assegna un **punteggio di qualità** basato su tutte le feature avanzate che abbiamo definito (coerenza, curva, evasione, rimozioni, etc.).
-
-3.  **Risultati Attuali:**
-    *   Lanciando `scripts/evaluatemodel.py`, abbiamo messo il nostro `AIBot` contro gli `ScoringBot`.
-    *   **Successo:** L'IA ottiene punteggi di mazzo molto alti, dimostrando di aver imparato a dare valore a carte con buone keyword e abilità.
-    *   **Limite Identificato:** L'IA, pur riconoscendo le carte forti, mostra una **disciplina di colore inferiore** rispetto allo `ScoringBot`. Tende a prendere la "carta migliore" in assoluto, faticando a consolidare un piano di colori ristretto.
-
-### Prossimi Passi
-
-Abbiamo raggiunto il limite del nostro modello attuale. Per superare la "mancanza di disciplina" e insegnare all'IA a comprendere le sinergie più profonde, il prossimo passo è evolvere l'architettura della rete neurale, passando a un **modello basato su Transformer**.
+Clonare il repository.
+Installare le dipendenze.
+Eseguire le fasi di preparazione, addestramento e valutazione in celle separate.
+Modificare al volo gli iperparametri (es. numero di epoche, learning rate) per iterare rapidamente sugli esperimenti senza modificare i file di progetto.
+Questo approccio è ideale per la ricerca e l'ottimizzazione del modello.
