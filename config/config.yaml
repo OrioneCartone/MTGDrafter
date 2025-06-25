@@ -23,22 +23,22 @@ simulation:
 # ========================== GENERAZIONE LOG (per generatelogs.py) ==========================
 log_generation:
   # Numero di draft da simulare per ogni cubo per creare il dataset di training.
-  num_drafts_per_cube: 1
+  num_drafts_per_cube: 500
 
 # ========================== VALUTAZIONE (per evaluatemodel.py) ==========================
 evaluation:
   # Numero di draft da simulare per ogni cubo per valutare il modello.
   # Aumenta questo per una valutazione statisticamente più robusta.
-  drafts_per_cube: 100
+  drafts_per_cube: 1000
 
 # ========================== MODELLO (per trainmodel.py) ==========================
 model:
   # Questi parametri devono corrispondere all'architettura in transformerdrafter.py
-  d_model: 128
+  d_model: 256
   nhead: 8
-  num_encoder_layers: 4
-  num_decoder_layers: 4
-  dim_feedforward: 512
+  num_encoder_layers: 6
+  num_decoder_layers: 6
+  dim_feedforward: 1024
   dropout: 0.1
   # Dimensione massima di un pacchetto (per il padding).
   max_pack_size: 15
@@ -48,7 +48,7 @@ model:
 # ========================== ADDESTRAMENTO (per trainmodel.py) ==========================
 training:
   # Numero di epoche per l'addestramento.
-  num_epochs: 1
+  num_epochs: 100
   # Dimensione del batch per il DataLoader.
   batch_size: 64
   # Tasso di apprendimento per l'ottimizzatore.
