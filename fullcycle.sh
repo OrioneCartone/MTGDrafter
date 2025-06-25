@@ -4,21 +4,30 @@
 #      Script per l'Esecuzione del Ciclo di Training
 #
 # Uso:
-#   ./fullcycle.sh            - Esegue l'intero ciclo da zero
-#   ./fullcycle.sh generate   - Salta la pulizia e il download, rigenera i dati
-#   ./fullcycle.sh train      - Salta tutto e parte dal training
-#   ./fullcycle.sh evaluate   - Esegue solo la fase di valutazione
+#   ./fullcycle.sh          - Esegue il ciclo completo (default)
+#   ./fullcycle.sh generate - Parte dalla generazione dei log
+#   ./fullcycle.sh train    - Parte dall'addestramento
+#   ./fullcycle.sh evaluate - Esegue solo la valutazione
+#   ./fullcycle.sh cleanup  - Esegue solo la pulizia
 # ===================================================================
 
-set -e
+set -e # Interrompe lo script se un comando fallisce
 
-# --- Definizione delle Funzioni per ogni Fase ---
+# --- Funzioni Helper ---
 
 setup_env() {
+    # MODIFICA: Rileva automaticamente l'ambiente Google Colab.
+    # Se la variabile d'ambiente COLAB_GPU esiste, siamo su Colab e saltiamo la gestione di venv.
+    if [ -n "$COLAB_GPU" ]; then
+        echo "✅ Rilevato ambiente Google Colab. Salto l'attivazione di 'venv'."
+        return
+    fi
+
+    # Codice originale per l'ambiente locale
     echo "▶️  FASE 0: Attivazione dell'ambiente virtuale..."
-    if [ ! -d "venv" ]; then
+    if [ ! -f "venv/bin/activate" ]; then
         echo "❌ Errore: La cartella 'venv' non è stata trovata."
-        echo "Esegui 'python3 -m venv venv' e 'pip install -r requirements.txt' prima."
+        echo "Esegui 'python3 -m venv venv' e 'pip install -r requirements.txt'"
         exit 1
     fi
     source venv/bin/activate
@@ -26,23 +35,25 @@ setup_env() {
 }
 
 do_cleanup() {
-    echo "▶️  FASE 1: Pulizia degli artefatti precedenti..."
-    python scripts/cleanup.py
-    echo "✅ Pulizia completata."
+    echo "▶️  FASE 1: Pulizia delle cartelle di output..."
+    rm -rf data/processed/pauper_generalist_logs/*
+    rm -rf models/pauper_generalist/*
+    # Crea un file .gitkeep per assicurarsi che le cartelle non vengano eliminate da Git
+    touch data/processed/pauper_generalist_logs/.gitkeep
+    touch models/pauper_generalist/.gitkeep
+    echo "✅ Cartelle di output pulite."
 }
 
-# --- FUNZIONE MANCANTE AGGIUNTA QUI ---
 do_download() {
-    echo "▶️  FASE 1.5: Download dei dati grezzi (se necessario)..."
-    python scripts/downloaddata.py
-    echo "✅ Download dati completato."
+    echo "▶️  FASE 2: Download dei dati grezzi..."
+    python scripts/download_data.py
+    echo "✅ Dati grezzi scaricati."
 }
-# --- FINE AGGIUNTA ---
 
 do_generate_logs() {
-    echo "▶️  FASE 2: Generazione del dataset di training..."
+    echo "▶️  FASE 2.5: Generazione dei log di draft per il training..."
     python scripts/generatelogs.py
-    echo "✅ Dataset generato con successo."
+    echo "✅ Log di training generati."
 }
 
 do_train_model() {
@@ -57,14 +68,17 @@ do_evaluate_model() {
     echo "✅ Valutazione completata."
 }
 
-# --- Logica Principale Aggiornata ---
-START_PHASE=${1:-all}
 
+# --- Logica Principale ---
+
+# Attiva l'ambiente (la funzione ora gestisce Colab)
 setup_env
-echo
 
-if [[ "$START_PHASE" == "all" || "$START_PHASE" == "cleanup" ]]; then
-    # Il ciclo completo parte dalla pulizia e include il download
+START_PHASE=${1:-all} # Default a 'all' se non viene fornito nessun argomento
+
+echo "--- Avvio Ciclo di Esecuzione (Fase iniziale: $START_PHASE) ---"
+
+if [[ "$START_PHASE" == "all" ]]; then
     do_cleanup
     echo
     do_download
@@ -74,8 +88,9 @@ if [[ "$START_PHASE" == "all" || "$START_PHASE" == "cleanup" ]]; then
     do_train_model
     echo
     do_evaluate_model
+elif [[ "$START_PHASE" == "cleanup" ]]; then
+    do_cleanup
 elif [[ "$START_PHASE" == "generate" ]]; then
-    # Se voglio solo rigenerare i log, non serve pulire o riscaricare tutto
     do_generate_logs
     echo
     do_train_model
