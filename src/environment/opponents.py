@@ -52,12 +52,15 @@ class ScoringBot(BaseBot):
             "board_wipe": 3.0, "synergy_engine": 1.6, "combat_trick": 1.2, "recursion": 1.2
         }
         self.context_weights = {
-            "color_commitment": 3.0, "splash_penalty": -5.0,
+            "color_commitment": 3.0, "splash_penalty": -3.0,
             "curve_bonus": 1.5, "signal_bonus": 4.0
         }
-        
-        # Stato interno del bot, correttamente inizializzato
-        self.main_colors = set()
+
+        for key in self.base_weights:
+            self.base_weights[key] *= random.uniform(0.9, 1.1) # Variazione del 10%
+        for key in self.context_weights:
+            self.context_weights[key] *= random.uniform(0.9, 1.1)
+        self.main_colors = set()  # Colori principali del mazzo in costruzione
         self.color_commitment = Counter()
         self.mana_curve = Counter()
 

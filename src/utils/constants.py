@@ -4,11 +4,11 @@
 # ========================== KEYWORD UFFICIALI ==========================
 KEYWORD_LIST = [
     'Deathtouch', 'Double strike', 'First strike', 'Trample', 'Indestructible',
-    'Menace', 'Reach', 'Flying', 'Skulk', 'Shadow', 'Horsemanship', 'Vigilance',
+    'Menace', 'Reach', 'Flying', 'Skulk', 'Shadow', 'Vigilance',
     'Lifelink', 'Haste', 'Flash', 'Hexproof', 'Defender', 'Prowess', 'Convoke',
     'Affinity for artifacts', 'Improvise', 'Unearth', 'Encore', 'Disturb',
     'Flashback', 'Dredge', 'Persist', 'Madness', 'Suspend', 'Vanishing',
-    'Modular', 'Cycling', 'Kicker', 'Buyback', 'Entwine', 'Bestow', 'Equip', 'Ward'
+    'Modular', 'Cycling','Delve', 'Kicker', 'Buyback', 'Entwine', 'Bestow', 'Equip', 'Ward'
 ]
 
 # ========================== PATTERN DI ABILITÀ TESTUALI ==========================
@@ -16,16 +16,23 @@ ABILITY_PATTERNS = {
     # A) Vantaggio di Risorse
     'draw_card': ['draw a card'],
     'draw_multiple_cards': ['draw two cards', 'draw three cards'],
-    'cantrip_etb': ['when this creature enters the battlefield, draw a card'],
+    'etb': ['when this creature enters'],
     'looting_effect': ['draw a card, then discard a card'],
     'rummaging_effect': ['discard a card, then draw a card'],
     'investigate': ['investigate'],
     'scry': ['scry '],
+    'scry_top': ['look at the top', 'cards of your library'],
+    'scry_bottom': ['put that card on the bottom of your library'],
     'surveil': ['surveil '],
     'explore': ['explore'],
+    'treasure_token': ['create a Treasure token'],
+    'clue_token': ['create a Clue token'],
+    'food_token': ['create a Food token'],
+    'life_gain': ['you gain', 'life'],
     'graveyard_recursion_creature': ['return target creature card from your graveyard'],
     'graveyard_recursion_any': ['return target', 'from your graveyard'],
     'tutor_basic_land': ['search your library for a basic land card'],
+
     
     # B) Interazione con l'Avversario
     'destroy_creature': ['destroy target creature'],
@@ -39,11 +46,12 @@ ABILITY_PATTERNS = {
     'counter_spell_soft': ['counter target', 'unless its controller pays'],
     'board_wipe_damage': ['deals', 'damage to each creature'],
     'edict_effect': ['sacrifices a creature'],
+
     
     # C) Gestione del Mana
     'mana_dork': ['creature', '{t}: add'],
     'mana_rock': ['artifact', '{t}: add'],
-    'mana_ramp_spell': ['search for', 'land card', 'put it onto the battlefield'],
+    'mana_ramp_spell': ['search your library for', 'land card', 'put it onto the battlefield'],
     'cost_reduction': ['costs {1} less to cast'],
     'ritual_effect': ['add {r}{r}{r}', 'add {b}{b}{b}'],
     'mana_fix': ['add one mana of any color'],
