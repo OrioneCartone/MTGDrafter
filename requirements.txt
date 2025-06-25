@@ -287,3 +287,8 @@ wheel==0.42.0
 widgetsnbextension==4.0.9
 xdg==5
 xkit==0.0.0
+torch
+numpy
+tqdm
+scipy
+PyYAML
