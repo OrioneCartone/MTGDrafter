@@ -23,7 +23,7 @@ simulation:
 # ========================== GENERAZIONE LOG (per generatelogs.py) ==========================
 log_generation:
   # Numero di draft da simulare per ogni cubo per creare il dataset di training.
-  num_drafts_per_cube: 10
+  num_drafts_per_cube: 1
 
 # ========================== VALUTAZIONE (per evaluatemodel.py) ==========================
 evaluation:
@@ -37,10 +37,9 @@ model:
   d_model: 128
   nhead: 8
   num_encoder_layers: 4
-  # MODIFICA: Aggiungi i parametri mancanti richiesti dal modello
-  num_decoder_layers: 4  # Un valore comune è usare lo stesso numero degli encoder
+  num_decoder_layers: 4
   dim_feedforward: 512
-  dropout: 0.1           # Un valore di dropout standard
+  dropout: 0.1
   # Dimensione massima di un pacchetto (per il padding).
   max_pack_size: 15
   # Dimensione massima del pool di un giocatore (per il padding).
@@ -48,9 +47,8 @@ model:
 
 # ========================== ADDESTRAMENTO (per trainmodel.py) ==========================
 training:
-  # MODIFICA: Aumentato per permettere al modello di convergere meglio
-  # sul dataset più grande.
-  num_epochs: 10
+  # Numero di epoche per l'addestramento.
+  num_epochs: 1
   # Dimensione del batch per il DataLoader.
   batch_size: 64
   # Tasso di apprendimento per l'ottimizzatore.

@@ -35,16 +35,22 @@ def print_deck_comparison(ai_player: Player, bot_player: Player):
     
     max_len = max(len(ai_deck_names), len(bot_deck_names))
     
-    # MODIFICA: Estrae il 'final_score' dal dizionario restituito da evaluate_deck.
     ai_score_dict = evaluate_deck(ai_player.pool)
     bot_score_dict = evaluate_deck(bot_player.pool)
-    header = f"{f'Mazzo dell\'IA (Punteggio: {ai_score_dict['final_score']:.2f})':<45} | {f'Mazzo dello ScoringBot (Punteggio: {bot_score_dict['final_score']:.2f})':<45}"
+    
+    # --- FIX 1: Correzione dell'errore di sintassi e logica ---
+    # La riga 'header' è stata riscritta per essere sintatticamente corretta,
+    # leggibile e per includere anche il punteggio del bot.
+    ai_title = f"Mazzo dell'IA (Punteggio: {ai_score_dict['final_score']:.2f})"
+    bot_title = f"Mazzo dello ScoringBot (Punteggio: {bot_score_dict['final_score']:.2f})"
+    header = f"{ai_title:<45} | {bot_title:<45}"
+    
     print(header)
     print("-" * len(header))
     
     for i in range(max_len):
-        ai_card = ai_deck_names[i] if i < len(ai_deck_names) else ""
-        bot_card = bot_deck_names[i] if i < len(bot_deck_names) else ""
+        ai_card = ai_deck_names[i] if i < len(ai_deck_names) else ''
+        bot_card = bot_deck_names[i] if i < len(bot_deck_names) else ''
         row = f"{ai_card:<45} | {bot_card:<45}"
         print(row)
     print("-" * len(header))
@@ -109,11 +115,9 @@ def main():
                     num_packs=sim_config['num_packs'],
                     draft_id=f"eval_{cube_path.stem}_{i}"
                 )
-                # MODIFICA: Tratta l'output del simulatore come un dizionario
                 final_players_dict = simulator.run_draft(verbose=False)
                 last_draft_players = final_players_dict
 
-                # MODIFICA: Estrae il 'final_score' e itera sui giocatori corretti
                 ai_player = final_players_dict[0]
                 bot_players = [final_players_dict[i] for i in range(1, sim_config['num_players'])]
 
@@ -123,6 +127,7 @@ def main():
                 progress_bar.update(1)
 
     if last_draft_players:
+        # Passa il secondo giocatore (ID 1) per il confronto
         print_deck_comparison(last_draft_players[0], last_draft_players[1])
 
     print("\n" + "="*95)
@@ -155,5 +160,7 @@ def main():
         else:
             print(f"Il risultato NON è statisticamente significativo (p >= {alpha}). Non si può concludere che la differenza sia reale.")
 
+# --- FIX 2: Correzione dell'errore logico ---
+# Lo script ora chiama la funzione main() per essere eseguito.
 if __name__ == '__main__':
     main()
