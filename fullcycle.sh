@@ -46,7 +46,7 @@ do_cleanup() {
 
 do_download() {
     echo "▶️  FASE 2: Download dei dati grezzi..."
-    python scripts/download_data.py
+    python scripts/downloaddata.py
     echo "✅ Dati grezzi scaricati."
 }
 
