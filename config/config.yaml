@@ -23,7 +23,7 @@ simulation:
 # ========================== GENERAZIONE LOG (per generatelogs.py) ==========================
 log_generation:
   # Numero di draft da simulare per ogni cubo per creare il dataset di training.
-  num_drafts_per_cube: 10
+  num_drafts_per_cube: 100
 
 # ========================== VALUTAZIONE (per evaluatemodel.py) ==========================
 evaluation:
@@ -50,7 +50,7 @@ model:
 training:
   # MODIFICA: Aumentato per permettere al modello di convergere meglio
   # sul dataset più grande.
-  num_epochs: 10
+  num_epochs: 200
   # Dimensione del batch per il DataLoader.
   batch_size: 64
   # Tasso di apprendimento per l'ottimizzatore.
