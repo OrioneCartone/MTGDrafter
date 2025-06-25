@@ -149,51 +149,67 @@ class ScoringBot(BaseBot):
 
 
 class AIBot(BaseBot):
-    """
-    Un bot che usa il modello TransformerDrafter addestrato per prendere decisioni.
-    """
+    """Un bot che usa il modello Transformer addestrato per fare le sue scelte."""
     def __init__(self, player: Player, model_path: Path):
         super().__init__(player)
-        self.encoder = CardEncoder()
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
-        if not model_path.exists():
-            raise FileNotFoundError(f"File modello non trovato: {model_path}")
-            
         model_config = CONFIG['model']
+        
+        # MODIFICA: Inizializza il modello usando il dizionario di configurazione,
+        # allineandosi con la versione più recente di TransformerDrafter.
         self.model = TransformerDrafter(
-            feature_size=FEATURE_SIZE,
-            embed_dim=model_config['embed_dim'],
-            hidden_dim=model_config['hidden_dim'],
-            n_heads=model_config['n_heads'],
-            n_layers=model_config['n_layers'],
-            dropout=model_config['dropout']
+            config=model_config,
+            feature_size=FEATURE_SIZE
         )
         
         self.model.load_state_dict(torch.load(model_path, map_location=self.device))
         self.model.to(self.device)
         self.model.eval()
 
+        self.encoder = CardEncoder()
+        self.max_pool_size = model_config['max_pool_size']
+        self.max_pack_size = model_config['max_pack_size']
+
+    def _prepare_tensors(self, pack: DraftPack, pick_number: int):
+        """Prepara i tensori di input per il modello nel formato batch=1."""
+        pack_features = [self.encoder.encode_card(c.details) for c in pack.cards]
+        pool_features = [self.encoder.encode_card(c.details) for c in self.player.pool]
+
+        # Padding del pack (se necessario, anche se di solito è pieno)
+        pack_tensor = torch.tensor(pack_features, dtype=torch.float32)
+        pack_padding_needed = self.max_pack_size - len(pack_features)
+        if pack_padding_needed > 0:
+             pack_tensor = torch.nn.functional.pad(pack_tensor, (0, 0, 0, pack_padding_needed), 'constant', 0)
+
+        # Padding del pool
+        pool_tensor = torch.tensor(pool_features, dtype=torch.float32) if pool_features else torch.empty(0, FEATURE_SIZE)
+        pool_padding_needed = self.max_pool_size - len(pool_features)
+        if pool_padding_needed > 0:
+            pool_tensor = torch.nn.functional.pad(pool_tensor, (0, 0, 0, pool_padding_needed), 'constant', 0)
+        
+        # Aggiungi la dimensione del batch (batch_size=1)
+        pack_tensor = pack_tensor.unsqueeze(0).to(self.device)
+        pool_tensor = pool_tensor.unsqueeze(0).to(self.device)
+        pick_tensor = torch.tensor([[pick_number]], dtype=torch.long).to(self.device)
+
+        return pack_tensor, pool_tensor, pick_tensor
+
     def pick(self, pack: DraftPack, pack_number: int, pick_number: int) -> Card:
+        if not pack.cards:
+            raise ValueError("Il pacchetto è vuoto, impossibile fare una scelta.")
+
+        pack_tensor, pool_tensor, pick_tensor = self._prepare_tensors(pack, pick_number)
+
         with torch.no_grad():
-            pack_vectors = [self.encoder.encode_card(c.details) for c in pack.cards]
-            pool_vectors = [self.encoder.encode_card(c.details) for c in self.player.pool]
-            
-            max_pack = CONFIG['model']['max_pack_size']
-            max_pool = CONFIG['model']['max_pool_size']
+            scores = self.model(pack_tensor, pool_tensor, pick_tensor)
+        
+        scores = scores.squeeze(0)
+        
+        # Maschera i punteggi per le posizioni di padding nel pack
+        num_real_cards = len(pack.cards)
+        scores[num_real_cards:] = -float('inf')
 
-            pack_tensor = torch.zeros(1, max_pack, FEATURE_SIZE, device=self.device)
-            pool_tensor = torch.zeros(1, max_pool, FEATURE_SIZE, device=self.device)
+        best_card_idx = torch.argmax(scores).item()
             
-            if pack_vectors: pack_tensor[0, :len(pack_vectors), :] = torch.tensor(pack_vectors, dtype=torch.float32)
-            if pool_vectors: pool_tensor[0, :len(pool_vectors), :] = torch.tensor(pool_vectors, dtype=torch.float32)
-
-            absolute_pick_number = (pack_number - 1) * 15 + pick_number
-            pick_tensor = torch.tensor([absolute_pick_number], dtype=torch.long, device=self.device)
-
-            scores = self.model(pack_tensor, pool_tensor, pick_tensor).squeeze(0)
-            
-            valid_scores = scores[:len(pack.cards)]
-            best_card_index = torch.argmax(valid_scores).item()
-            
-            return pack.cards[best_card_index]
+        return pack.cards[best_card_idx]

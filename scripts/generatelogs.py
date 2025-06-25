@@ -6,24 +6,31 @@ from tqdm import tqdm
 # --- BLOCCO DI CODICE EFFETTIVO ---
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.append(str(PROJECT_ROOT))
+
+from src.utils.config_loader import CONFIG
+# MODIFICA: Aggiungi l'import mancante per la classe Player
+from src.environment.draft import Card, Player
+from src.environment.draftsimulator import DraftSimulator
+from src.environment.opponents import ScoringBot
+from src.training.logger import DraftLogger
+
 # --- FINE BLOCCO ---
 
 # --- MODIFICA 1: Importa la configurazione ---
-from src.utils.config_loader import CONFIG
-from src.environment.draftsimulator import DraftSimulator
-from src.environment.opponents import ScoringBot
-from src.environment.draft import Player
-from src.training.logger import DraftLogger
-
 # --- MODIFICA 2: I percorsi e i parametri sono ora presi dal file di configurazione ---
-sim_config = CONFIG['simulation']
+# --- Caricamento Configurazione ---
 paths_config = CONFIG['paths']
+sim_config = CONFIG['simulation']
+# MODIFICA: Carica la sezione di configurazione specifica per la generazione dei log
+log_gen_config = CONFIG['log_generation']
 
-LOGS_DIR = PROJECT_ROOT / paths_config['logs_dir']
-CARD_DB_PATH = PROJECT_ROOT / paths_config['card_db_path']
+LOGS_DIR = PROJECT_ROOT / paths_config['log_output_dir']
 CUBE_LISTS_DIR = PROJECT_ROOT / paths_config['cube_lists_dir']
+CARD_DB_PATH = PROJECT_ROOT / paths_config['card_db_path']
+
 NUM_PLAYERS = sim_config['num_players']
-DRAFTS_PER_CUBE = sim_config['drafts_per_cube']
+# MODIFICA: Leggi il parametro dalla sezione corretta
+DRAFTS_PER_CUBE = log_gen_config['num_drafts_per_cube']
 
 def load_json_file(path: Path):
     if not path.exists():
@@ -47,6 +54,11 @@ def main():
     
     all_cubes = list(CUBE_LISTS_DIR.glob("*.json"))
     draft_id_counter = 0
+    
+    # MODIFICA: Legge il numero di draft dal file di configurazione
+    log_gen_config = CONFIG['log_generation']
+    num_drafts_to_generate = log_gen_config['num_drafts_per_cube']
+    print(f"Generazione di {num_drafts_to_generate} log per ogni cubo...")
 
     for cube_path in tqdm(all_cubes, desc="Processing Cubes"):
         cube_data = load_json_file(cube_path)
@@ -57,10 +69,11 @@ def main():
         
         cards_needed = NUM_PLAYERS * sim_config['pack_size'] * sim_config['num_packs']
         if len(cube_full_details) < cards_needed:
-            print(f"ATTENZIONE: Salto il cubo {cube_path.name}, carte insufficienti.")
+            tqdm.write(f"Skipping {cube_path.name}, not enough cards.")
             continue
             
-        for _ in tqdm(range(DRAFTS_PER_CUBE), desc=f"Drafting {cube_path.stem}", leave=False):
+        for i in range(DRAFTS_PER_CUBE):
+            draft_id_counter += 1
             bots = [ScoringBot(Player(player_id=j)) for j in range(NUM_PLAYERS)]
             cube_copy = list(cube_full_details)
             

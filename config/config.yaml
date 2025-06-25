@@ -1,52 +1,57 @@
 # File di configurazione centrale per il progetto MTGAgent.
-# Modifica questi valori per cambiare il comportamento degli script senza toccare il codice.
 
 # ========================== PERCORSI ==========================
 paths:
-  # Percorso alla cartella dei dati.
-  data_dir: "data"
-  # Percorso dove sono salvati i log di draft generati.
-  logs_dir: "data/processed/pauper_generalist_logs"
   # Percorso al database di carte JSON di Scryfall.
   card_db_path: "data/external/scryfall_commons.json"
   # Percorso alle liste di cubi in formato JSON.
   cube_lists_dir: "data/raw/cube_lists"
+  # Percorso dove verranno salvati i log di draft generati.
+  log_output_dir: "data/processed/pauper_generalist_logs"
   # Percorso dove verranno salvati i modelli addestrati.
-  model_save_dir: "models/experiments/transformer_v1"
+  model_save_dir: "models/pauper_generalist"
 
-# ========================== SIMULAZIONE (per generatelogs.py) ==========================
+# ========================== PARAMETRI DI SIMULAZIONE (Condivisi) ==========================
 simulation:
-  # Numero di draft da simulare per ogni file di cubo.
-  drafts_per_cube: 1
   # Numero di giocatori (bot) in ogni draft.
   num_players: 8
-  # Numero di pacchetti per draft.
-  num_packs: 3
   # Dimensione di ogni pacchetto.
   pack_size: 15
+  # Numero di pacchetti per draft.
+  num_packs: 3
+
+# ========================== GENERAZIONE LOG (per generatelogs.py) ==========================
+log_generation:
+  # Numero di draft da simulare per ogni cubo per creare il dataset di training.
+  num_drafts_per_cube: 10
+
+# ========================== VALUTAZIONE (per evaluatemodel.py) ==========================
+evaluation:
+  # Numero di draft da simulare per ogni cubo per valutare il modello.
+  # Aumenta questo per una valutazione statisticamente più robusta.
+  drafts_per_cube: 40
+
+# ========================== MODELLO (per trainmodel.py) ==========================
+model:
+  # Questi parametri devono corrispondere all'architettura in transformerdrafter.py
+  d_model: 128
+  nhead: 8
+  num_encoder_layers: 4
+  # MODIFICA: Aggiungi i parametri mancanti richiesti dal modello
+  num_decoder_layers: 4  # Un valore comune è usare lo stesso numero degli encoder
+  dim_feedforward: 512
+  dropout: 0.1           # Un valore di dropout standard
+  # Dimensione massima di un pacchetto (per il padding).
+  max_pack_size: 15
+  # Dimensione massima del pool di un giocatore (per il padding).
+  max_pool_size: 50
 
 # ========================== ADDESTRAMENTO (per trainmodel.py) ==========================
 training:
-  # Numero di epoche per l'addestramento.
-  num_epochs: 1
+  # MODIFICA: Aumentato per permettere al modello di convergere meglio
+  # sul dataset più grande.
+  num_epochs: 10
   # Dimensione del batch per il DataLoader.
   batch_size: 64
   # Tasso di apprendimento per l'ottimizzatore.
   learning_rate: 0.0001 # 1e-4
-
-# ========================== MODELLO (per trainmodel.py) ==========================
-model:
-  # Dimensione dello strato di embedding per le carte.
-  embed_dim: 128
-  # Dimensione dello strato nascosto nel Transformer.
-  hidden_dim: 256
-  # Numero di "teste" nel multi-head attention.
-  n_heads: 4
-  # Numero di layer dell'encoder Transformer.
-  n_layers: 2
-  # Dropout per la regolarizzazione.
-  dropout: 0.1
-  # Dimensione massima di un pacchetto (per il padding).
-  max_pack_size: 15
-  # Dimensione massima del pool di un giocatore (per il padding).
-  max_pool_size: 45
